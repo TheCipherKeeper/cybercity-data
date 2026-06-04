@@ -1,0 +1,52 @@
+id: city-bank
+name: "City First Bank"
+kind: finance
+segment: corp
+
+description: |
+  Городской банк, обслуживает физлиц, бизнес и муниципалитет.
+  Через bank-api ходят платежи от других организаций (аптека - см. link).
+  bank-db - критический актив (core ledger), защищён по сегменту corp.
+
+third_party:
+  - name: City Hall
+    role: payroll customer
+    note: trusts от hall-idp к bank-idp
+  - name: City Pharmacy Chain
+    role: payments customer
+    note: POS бьёт по bank-api (api-call)
+
+notes:
+  - "bank-db никогда не торчит наружу - даже api-call идёт через bank-api"
+  - "bank-idp - главная цель credential stuffing в сценариях"
+  - "portal.city-bank.corp - публичный web, частый entry point"
+
+services:
+  - id: bank-web
+    org_id: city-bank
+    name: "Bank customer portal"
+    kind: web
+    exposure: public
+    host: portal.city-bank.corp
+  - id: bank-api
+    org_id: city-bank
+    name: "Bank payments API"
+    kind: api
+    exposure: intranet
+    host: api.city-bank.corp
+  - id: bank-idp
+    org_id: city-bank
+    name: "Bank SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.city-bank.corp
+  - id: bank-db
+    org_id: city-bank
+    name: "Bank core ledger"
+    kind: db
+    exposure: intranet
+    host: db.city-bank.corp
+
+decoys: []
+
+links: []

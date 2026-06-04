@@ -1,0 +1,47 @@
+id: city-pharmacy
+name: "City Pharmacy Chain"
+kind: healthcare
+segment: corp
+
+description: |
+  Сеть городских аптек. POS-терминалы списывают оплату через bank-api.
+  Хранит рецепты и историю покупок (phar-db) - данные под защитой
+  healthcare-профиля (PHI), даже если этот репо не моделирует полную HIPAA-схему.
+
+third_party:
+  - name: City First Bank
+    role: payment processor
+    note: phar-pos -> bank-api (api-call, tcp/443)
+
+notes:
+  - "phar-pos - типичная точка входа через слабый пароль кассира"
+  - "phar-db содержит рецепты - lateral target от POS"
+  - "phar-idp в этой итерации изолирован (нет внешних trusts)"
+
+services:
+  - id: phar-pos
+    org_id: city-pharmacy
+    name: "Pharmacy POS"
+    kind: pos
+    exposure: intranet
+    host: pos.city-pharmacy.corp
+  - id: phar-idp
+    org_id: city-pharmacy
+    name: "Pharmacy SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.city-pharmacy.corp
+  - id: phar-db
+    org_id: city-pharmacy
+    name: "Pharmacy records"
+    kind: db
+    exposure: intranet
+    host: db.city-pharmacy.corp
+
+decoys: []
+
+links:
+  - from_service: phar-pos
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443

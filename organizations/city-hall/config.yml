@@ -1,0 +1,53 @@
+id: city-hall
+name: "City Hall"
+kind: government
+segment: corp
+
+description: |
+  Муниципальный центр города. Принимает налоговые декларации,
+  ведёт реестр жителей, рассылает уведомления. Зарплатный
+  проект - в City First Bank (см. link trusts hall-idp -> bank-idp).
+
+third_party:
+  - name: City First Bank
+    role: payroll
+    note: односторонний SSO-trust от hall-idp к bank-idp
+
+notes:
+  - "portal.city-hall.corp отдаёт публичную форму - entry point в сценариях"
+  - "file-share содержит бюджетные документы, удобная цель для lateral movement"
+  - "mail - основной канал фишинговых рассылок в городских сценариях"
+
+services:
+  - id: hall-web
+    org_id: city-hall
+    name: "City Hall portal"
+    kind: web
+    exposure: public
+    host: portal.city-hall.corp
+  - id: hall-mail
+    org_id: city-hall
+    name: "City Hall mail"
+    kind: mail
+    exposure: intranet
+    host: mail.city-hall.corp
+  - id: hall-fs
+    org_id: city-hall
+    name: "City Hall file share"
+    kind: file-share
+    exposure: intranet
+    host: fs.city-hall.corp
+  - id: hall-idp
+    org_id: city-hall
+    name: "City Hall SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.city-hall.corp
+
+decoys: []
+
+links:
+  - from_service: hall-idp
+    to_service: bank-idp
+    kind: trusts
+    protocol: tcp/443
