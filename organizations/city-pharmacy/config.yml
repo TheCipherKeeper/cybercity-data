@@ -34,7 +34,7 @@ services:
       product: Square-POS
       version: "5.0"
     ports: [tcp/443]
-    owner_team: retail-ops
+    criticality: high
 
   - id: phar-idp
     name: "Pharmacy SSO"
@@ -50,7 +50,7 @@ services:
       product: auth0
       version: unknown
     ports: [tcp/443]
-    owner_team: ict
+    criticality: high
 
   - id: phar-db
     name: "Pharmacy records"
@@ -66,7 +66,7 @@ services:
       product: postgresql
       version: "15.4"
     ports: [tcp/5432]
-    owner_team: dba
+    criticality: critical
 
 links:
   - from_service: phar-pos

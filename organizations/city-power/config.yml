@@ -30,6 +30,7 @@ services:
       product: SIMATIC
       version: "16.0"
     ports: [tcp/102]
+    criticality: critical
 
   - id: decoy-printer-01
     name: "Mock OT printer"

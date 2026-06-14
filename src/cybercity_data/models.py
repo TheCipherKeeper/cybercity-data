@@ -21,6 +21,7 @@ __all__ = [
     "AuthMethod",
     "DataClassification",
     "Software",
+    "Criticality",
     "LinkKind",
     "LinkEncryption",
     "DecoyKind",
@@ -92,6 +93,13 @@ DataClassification = Literal[
     "pii",
     "phi",
     "pci",
+]
+
+Criticality = Literal[
+    "critical",
+    "high",
+    "medium",
+    "low",
 ]
 
 LinkKind = Literal[
@@ -206,6 +214,7 @@ class Service(_StrictModel):
     id: str = Field(pattern=_KEBAB)
     org_id: str = Field(pattern=_KEBAB)
     name: str
+    description: str | None = None
     kind: SvcKind
     exposure: Exposure
     host: str = Field(pattern=_FQDN)
@@ -215,10 +224,11 @@ class Service(_StrictModel):
     bind_ip: str | None = Field(default=None, pattern=_IPV4)
 
     software: Software | None = None
+    os_hint: str | None = None
     auth: AuthMethod = "local"
     data_classification: DataClassification = "internal"
+    criticality: Criticality = "medium"
     ports: list[Annotated[str, Field(pattern=_PORT)]] = Field(default_factory=list)
-    owner_team: str | None = None
     decoy: DecoyBlock | None = None
 
 

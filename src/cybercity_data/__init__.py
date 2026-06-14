@@ -10,6 +10,7 @@ from .models import (
     SCHEMA_VERSION,
     AuthMethod,
     CityNetwork,
+    Criticality,
     DataClassification,
     DecoyBlock,
     DecoyFingerprint,
@@ -33,6 +34,7 @@ __all__ = [
     # Models
     "AuthMethod",
     "CityNetwork",
+    "Criticality",
     "DataClassification",
     "DecoyBlock",
     "DecoyFingerprint",

@@ -88,6 +88,7 @@ class Builder:
                 {
                     "id": s.id,
                     "kind": s.kind,
+                    "description": s.description,
                     "org_id": s.org_id,
                     "org_name": org_name.get(s.org_id, ""),
                     "network_index": org_index.get(s.org_id, 0),
@@ -96,7 +97,9 @@ class Builder:
                     "exposure": s.exposure,
                     "auth": s.auth,
                     "data_classification": s.data_classification,
+                    "criticality": s.criticality,
                     "ports": list(s.ports),
+                    "os_hint": s.os_hint,
                     "is_mock": s.decoy is not None,
                     "host": s.host,
                 }
@@ -236,9 +239,9 @@ class Builder:
         parts.append("")
         parts.append(
             "| id | org | network | bind_ip | kind | exposure | auth | "
-            "classification | software | ports | mock |"
+            "classification | criticality | software | ports | os_hint | mock |"
         )
-        parts.append("|---|---|---|---|---|---|---|---|---|---|---|")
+        parts.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
         net_by_id = {n.id: n for o in self.network.organizations for n in o.networks}
         for s in sorted(self.network.services, key=lambda x: x.id):
             net = net_by_id.get(s.network_id or "", None)
@@ -250,10 +253,11 @@ class Builder:
             ports = ", ".join(s.ports)
             mock = s.decoy.kind if s.decoy else ""
             bind_ip = s.bind_ip or ""
+            os_hint = s.os_hint or ""
             parts.append(
                 f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {bind_ip} | "
                 f"{s.kind} | {s.exposure} | {s.auth} | {s.data_classification} | "
-                f"{sw} | {ports} | {mock} |"
+                f"{s.criticality} | {sw} | {ports} | {os_hint} | {mock} |"
             )
         parts.append("")
 

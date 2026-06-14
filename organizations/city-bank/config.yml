@@ -34,7 +34,7 @@ services:
       product: nginx
       version: "1.24.0"
     ports: [tcp/443, tcp/80]
-    owner_team: digital
+    criticality: high
 
   - id: bank-api
     name: "Bank payments API"
@@ -50,7 +50,7 @@ services:
       product: payments-gateway
       version: "3.2.0"
     ports: [tcp/443]
-    owner_team: payments
+    criticality: critical
 
   - id: bank-idp
     name: "Bank SSO"
@@ -66,7 +66,7 @@ services:
       product: okta
       version: unknown
     ports: [tcp/443]
-    owner_team: iam
+    criticality: high
 
   - id: bank-db
     name: "Bank core ledger"
@@ -82,7 +82,7 @@ services:
       product: DB
       version: "19.0.0.0"
     ports: [tcp/1521]
-    owner_team: dba
+    criticality: critical
 
 links:
   - from_service: bank-web

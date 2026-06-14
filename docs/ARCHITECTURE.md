@@ -74,11 +74,11 @@ description
 ### `Service`
 
 ```
-id, org_id, name, kind, exposure, host
+id, org_id, name, description?, kind, exposure, host
 network_id, bind_ip              # REQUIRED in v2.0
 software {vendor, product, version?, cve_id?}
-auth, data_classification
-ports, owner_team
+auth, data_classification, criticality
+ports, os_hint
 decoy {kind, fingerprint, os_hint, note}   # optional mock service
 ```
 

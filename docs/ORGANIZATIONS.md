@@ -55,6 +55,7 @@ networks:
 services:
   - id: hosp-web
     name: "Hospital portal"
+    description: "Публичный портал больницы"   # необязательно
     kind: web                  # web | api | pos | identity | db | file-share |
                                # rmm | vpn | ot | cctv | mail | dns | ntp |
                                # backup | log | erp | hrms | billing | tickets |
@@ -65,10 +66,13 @@ services:
     bind_ip: 10.10.10.10
     auth: sso
     data_classification: public
+    criticality: high          # critical | high | medium | low
     software:
       vendor: nginx
       product: nginx
       version: "1.24.0"
+      cve_id: "CVE-2023-1234"   # опционально, формат CVE-YYYY-NNNNN
+    os_hint: linux
     ports: [tcp/443, tcp/80]
 
   # Имитационный сервис (массовка для симуляции).
@@ -79,6 +83,7 @@ services:
     host: mock-printer-01.city-hospital.corp
     network_id: city-hospital-lan
     bind_ip: 10.10.11.15
+    criticality: low
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
