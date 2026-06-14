@@ -78,14 +78,14 @@ links:
 
   - from_service: phar-pos
     to_service: hall-dns
-    kind: m2m
+    kind: dns-query
     protocol: udp/53
     encryption: none
     label: "POS DNS resolution"
 
   - from_service: phar-idp
     to_service: hall-dns
-    kind: m2m
+    kind: dns-query
     protocol: udp/53
     encryption: none
     label: "idp DNS resolution"

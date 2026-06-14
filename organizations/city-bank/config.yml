@@ -87,14 +87,14 @@ services:
 links:
   - from_service: bank-web
     to_service: hall-dns
-    kind: m2m
+    kind: dns-query
     protocol: udp/53
     encryption: none
     label: "portal DNS resolution"
 
   - from_service: bank-api
     to_service: hall-dns
-    kind: m2m
+    kind: dns-query
     protocol: udp/53
     encryption: none
     label: "api DNS resolution"

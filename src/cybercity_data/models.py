@@ -110,9 +110,9 @@ LinkKind = Literal[
     "log-sink",
     "backup-of",
     "trusts",
-    "lateral",
-    "m2m",
     "vendor-vpn",
+    "dns-query",
+    "ntp-query",
 ]
 
 LinkEncryption = Literal["none", "tls", "mtls", "ipsec", "sso-trust"]
@@ -242,7 +242,6 @@ class Link(_StrictModel):
     protocol: str | None = Field(default=None, pattern=_PORT)
 
     encryption: LinkEncryption = "tls"
-    bidirectional: bool = False
     label: str | None = None
 
 

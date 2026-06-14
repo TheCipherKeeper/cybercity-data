@@ -49,14 +49,14 @@ services:
 links:
   - from_service: power-ot
     to_service: hall-ntp
-    kind: m2m
+    kind: ntp-query
     protocol: udp/123
     encryption: none
     label: "OT time sync"
 
   - from_service: decoy-printer-01
     to_service: hall-dns
-    kind: m2m
+    kind: dns-query
     protocol: udp/53
     encryption: none
     label: "mock device DNS resolution"

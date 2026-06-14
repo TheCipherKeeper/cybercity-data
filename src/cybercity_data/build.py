@@ -117,7 +117,6 @@ class Builder:
                     "kind": link.kind,
                     "protocol": link.protocol,
                     "encryption": link.encryption,
-                    "bidirectional": link.bidirectional,
                     "label": link.label,
                 }
             )

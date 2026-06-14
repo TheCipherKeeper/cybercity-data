@@ -31,7 +31,9 @@ cybercity-data/
 │   ├── ORGANIZATIONS.md         ← per-org layout conventions
 │   └── LICENSE-DOCS             ← docs license
 ├── organizations/
-│   └── <org>/config.yml         # per-organization data (v2.0 explicit)
+│   └── <org>/
+│       ├── config.yml           # per-organization data (v2.0 explicit)
+│       └── services/            # optional per-service asset directories
 ├── src/cybercity_data/
 │   ├── models.py                # Pydantic v2 schema
 │   ├── loader.py                # per-org → CityNetwork
@@ -71,6 +73,12 @@ description
 
 `kind ∈ {dmz, lan, ot, mgmt, internet}`.
 
+### `Link` kinds
+
+`kind ∈ {api-call, auth, db-read, db-write, log-sink, backup-of, trusts, vendor-vpn, dns-query, ntp-query}`.
+
+Links are always directed. If a relationship is bidirectional, declare two explicit links.
+
 ### `Service`
 
 ```
@@ -86,7 +94,7 @@ decoy {kind, fingerprint, os_hint, note}   # optional mock service
 
 ```
 from_service, to_service, kind, protocol?
-encryption, bidirectional, label
+encryption, label
 ```
 
 ### `CityNetwork`
@@ -122,6 +130,7 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 | `exposure-network` | error | exposure allowed on network kind |
 | `self-loop` | error | link does not point to itself |
 | `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |
+| `assets` | warning | service asset directory matches a declared service |
 
 ## ADR
 
@@ -137,6 +146,8 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 | ADR-0008 | `--strict` makes warnings fail CI |
 | ADR-0009 | `CityNetwork` version is a code constant (`SCHEMA_VERSION`); no city-wide allocation file |
 | ADR-0010 | `Organization` keeps only structural fields; narrative metadata lives in `description` or is removed |
+| ADR-0011 | Links are directed; no `bidirectional` flag |
+| ADR-0012 | Optional `services/<svc-id>/` directories hold runtime assets; canonical service description stays in `config.yml` |
 
 ## License
 

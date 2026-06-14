@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from cybercity_data import CityNetwork
-from cybercity_data.loader import find_org_dirs, load_network
+from cybercity_data.loader import NetworkLoader, find_org_dirs, load_network
 
 
 def test_find_org_dirs_skips_underscore_dirs(tiny_path: Path) -> None:
@@ -182,6 +182,26 @@ def test_load_no_org_dirs(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     with pytest.raises(FileNotFoundError):
         load_network(tmp_path)
+
+
+def test_service_assets_discovered(tiny_path: Path) -> None:
+    loader = NetworkLoader(tiny_path)
+    loader.load()
+    assets = {a.svc_id: a for a in loader.service_assets}
+    assert "hosp-web" in assets
+    assert assets["hosp-web"].org_id == "city-hospital"
+    assert (assets["hosp-web"].path / "nginx.conf").exists()
+
+
+def test_orphan_service_asset_emits_warning(broken_path: Path) -> None:
+    loader = NetworkLoader(broken_path)
+    loader.load()
+    warning = next(
+        (i for i in loader.issues if i.code == "assets" and "orphan-service" in i.message),
+        None,
+    )
+    assert warning is not None
+    assert warning.level == "warning"
 
 
 def test_load_final_assembly_validation_error(tmp_path: Path) -> None:

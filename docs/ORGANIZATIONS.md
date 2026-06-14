@@ -18,9 +18,17 @@
 ```
 organizations/
 ├── city-hall/
-│   └── config.yml
+│   ├── config.yml
+│   └── services/            # опциональные ассеты сервисов
+│       └── hall-web/
+│           ├── nginx.conf
+│           └── certs/
 ├── city-bank/
-│   └── config.yml
+│   ├── config.yml
+│   └── services/
+│       └── bank-web/
+│           ├── nginx.conf
+│           └── certs/
 └── _archive/               # underscore-папки игнорируются loader'ом
 ```
 
@@ -96,7 +104,7 @@ links:
   - from_service: hosp-web
     to_service: external-idp
     kind: auth                 # api-call | auth | db-read | db-write | log-sink |
-                               # backup-of | trusts | lateral | m2m | vendor-vpn
+                               # backup-of | trusts | vendor-vpn | dns-query | ntp-query
     protocol: tcp/443
     encryption: tls
     label: "federated authentication"
@@ -128,6 +136,8 @@ links:
 - **`services[].org_id` не пишется.** Loader подставляет автоматически.
 - **`networks` обязательны.** Loader не создаёт сети и не назначает IP.
 - **`services[].network_id` и `services[].bind_ip` обязательны.** Валидатор поймает ошибки.
+- **Опциональные ассеты сервисов** — в `services/<svc-id>/`. Имя папки должно
+  совпадать с `id` сервиса из `config.yml`; иначе loader выдаст warning.
 - **`decoy` — имитационный сервис.** Используется для плотности симуляции, не связан с security-слоем.
 - **links живут в папке from-организации.**
 - **Уникальность `(from, to, kind)`** для link'ов.

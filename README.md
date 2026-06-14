@@ -7,14 +7,16 @@
 Canonical declarative data layer for the CyberCity digital twin:
 organizations, networks, services, links.
 
-This repository models the IT/OT infrastructure of an abstract city.
-Security scenarios, vulnerabilities, pentesting playbooks and honeypots live in
-separate repositories; here we keep the neutral city model that other tools
-consume.
+This repository models the IT/OT infrastructure of an abstract city as a
+directed graph: services are nodes, links are edges. Other tools consume this
+graph to simulate traffic, run security scenarios, and visualize the city.
 
 In v2.0 everything is explicit: each organization declares its own networks,
-IP addresses, and service placement. The validator catches missing or
-inconsistent declarations.
+IP addresses, service placement, and optional per-service asset directories.
+The validator catches missing or inconsistent declarations.
+
+Links are always directed; if a relationship is bidirectional, declare two
+explicit links.
 
 - **Architecture & model:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - **Per-org layout conventions:** [`docs/ORGANIZATIONS.md`](docs/ORGANIZATIONS.md)
