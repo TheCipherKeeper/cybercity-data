@@ -148,6 +148,85 @@ def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
     assert "segment: corp" in text
 
 
+def test_check_json_on_missing_dir(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["check", str(tmp_path), "--json"])
+    assert result.exit_code == 1
+    data = json.loads(result.output)
+    assert data["ok"] is False
+    assert data["exit_code"] == 1
+    assert "error" in data
+
+
+def test_check_exits_1_on_bad_city_yaml(tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir(parents=True)
+    _write(tmp_path / "organizations" / "city.yml", "not: valid: yaml: [\n")
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+
+
+def test_build_strict_skips_on_warnings(tiny_path: Path, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    result = runner.invoke(
+        app, ["build", str(tiny_path), "--out", str(out), "--strict"]
+    )
+    assert result.exit_code == 1, result.output
+    assert not (out / "network.json").exists()
+
+
+def test_build_strict_json_includes_render_skipped(tiny_path: Path) -> None:
+    result = runner.invoke(
+        app, ["build", str(tiny_path), "--json", "--strict"]
+    )
+    assert result.exit_code == 1
+    data = json.loads(result.output)
+    assert data["ok"] is False
+    assert "render_skipped" in data
+
+
+def test_init_fails_without_organizations(tmp_path: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "city-x",
+            "--kind",
+            "government",
+            "--segment",
+            "corp",
+            "--path",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 1
+
+
+def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\nmeta:\n  city: x\n  allocation:\n'
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "organizations" / "city-x").mkdir()
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "city-x",
+            "--kind",
+            "government",
+            "--segment",
+            "corp",
+            "--path",
+            str(tmp_path),
+        ],
+    )
+    assert result.exit_code == 1
+
+
 def test_version_flag() -> None:
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0

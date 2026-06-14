@@ -218,3 +218,134 @@ def test_quota_warning(tiny_network: CityNetwork) -> None:
     report = check(tiny_network)
     quota = [i for i in report.issues if i.code == "quota"]
     assert quota and all(i.level == "warning" for i in quota)
+
+
+def test_network_belongs_missing_network_id(tiny_network: CityNetwork) -> None:
+    svc = tiny_network.services[0]
+    bad = _mutate(
+        tiny_network,
+        services=[svc.model_copy(update={"network_id": None})],
+    )
+    report = check(bad)
+    assert any(
+        i.code == "network-belongs" and "has no network_id" in i.message
+        for i in report.errors
+    )
+
+
+def test_ip_in_network_invalid_ip(tiny_network: CityNetwork) -> None:
+    svc = tiny_network.services[0]
+    bad = _mutate(
+        tiny_network,
+        services=[
+            svc.model_copy(
+                update={"network_id": "city-hospital-dmz", "bind_ip": "999.999.999.999"}
+            )
+        ],
+    )
+    report = check(bad)
+    assert any(
+        i.code == "ip-in-network" and "invalid IP or CIDR" in i.message
+        for i in report.errors
+    )
+
+
+def test_network_overlap_invalid_cidr_ignored() -> None:
+    """Invalid CIDR should not crash the overlap check."""
+    from unittest.mock import patch
+
+    org_a = Organization(
+        id="a",
+        name="A",
+        kind="finance",
+        segment="corp",
+        networks=[Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.10.1.0/24")],
+    )
+    org_b = Organization(
+        id="b",
+        name="B",
+        kind="finance",
+        segment="corp",
+        networks=[Network(id="b-dmz", org_id="b", kind="dmz", cidr="10.10.2.0/24")],
+    )
+    network = CityNetwork(
+        version="1.0.0",
+        meta={
+            "city": "x",
+            "allocation": {
+                "corp": "10.10.0.0/16",
+                "ot": "10.20.0.0/16",
+                "mgmt": "10.30.0.0/16",
+                "internet": "203.0.113.0/24",
+            },
+        },
+        organizations=[org_a, org_b],
+        services=[
+            Service(
+                id="s1",
+                org_id="a",
+                name="S1",
+                kind="web",
+                exposure="public",
+                host="s1.a.corp",
+                network_id="a-dmz",
+            ),
+        ],
+    )
+    # Simulate invalid CIDR in overlap check without violating pydantic assignment.
+    with patch("ipaddress.ip_network", side_effect=ValueError("boom")):
+        report = check(network)
+    # Overlap is skipped for invalid CIDR.
+    overlap = [i for i in report.issues if i.code == "network-overlap"]
+    assert not overlap
+
+
+def test_exposure_network_unknown_net(tiny_network: CityNetwork) -> None:
+    svc = tiny_network.services[0]
+    bad = _mutate(
+        tiny_network,
+        services=[svc.model_copy(update={"network_id": "ghost-net"})],
+    )
+    report = check(bad)
+    # network-belongs fires, exposure-network skips unknown net.
+    assert any(i.code == "network-belongs" for i in report.errors)
+    assert not any(i.code == "exposure-network" for i in report.errors)
+
+
+def test_posture_public_with_known_weakness(tiny_network: CityNetwork) -> None:
+    public_svc = next(s for s in tiny_network.services if s.exposure == "public")
+    bad = _mutate(
+        tiny_network,
+        services=[
+            public_svc.model_copy(
+                update={"auth": "sso", "known_weakness": "unpatched"}
+            )
+        ],
+    )
+    report = check(bad)
+    assert any(
+        i.code == "posture" and "unpatched" in i.message
+        for i in report.warnings
+    )
+
+
+def test_link_encryption_public_warning(tiny_network: CityNetwork) -> None:
+    from cybercity_data.models import Link
+
+    public_svc = next(s for s in tiny_network.services if s.exposure == "public")
+    bad = _mutate(
+        tiny_network,
+        links=[
+            Link(
+                from_service=public_svc.id,
+                to_service=public_svc.id,
+                kind="api-call",
+                encryption="none",
+            )
+        ],
+    )
+    report = check(bad)
+    assert any(
+        i.code == "link-encryption" and "unencrypted link" in i.message
+        for i in report.warnings
+    )
