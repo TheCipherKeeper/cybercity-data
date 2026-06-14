@@ -1,0 +1,137 @@
+id: mobile
+name: "City Mobile Operator"
+kind: media-telecom
+network_index: 24
+
+description: |
+  Городской мобильный оператор. Предоставляет голосовую связь,
+  мобильный интернет, биллинг и управляет HLR/HSS абонентов.
+  Дополняет фиксированного ISP.
+
+networks:
+  - id: mobile-dmz
+    kind: dmz
+    cidr: 10.24.1.0/24
+  - id: mobile-lan
+    kind: lan
+    cidr: 10.24.129.0/24
+  - id: mobile-mgmt
+    kind: mgmt
+    cidr: 10.24.253.0/24
+
+services:
+  - id: mobile-web
+    name: "Mobile operator portal"
+    kind: web
+    exposure: public
+    host: portal.mobile.net
+    network_id: mobile-dmz
+    bind_ip: 10.24.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: mobile-billing
+    name: "Mobile subscriber billing"
+    kind: billing
+    exposure: intranet
+    host: billing.mobile.net
+    network_id: mobile-lan
+    bind_ip: 10.24.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: mobile-billing
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: mobile-hlr
+    name: "Mobile HLR"
+    kind: db
+    exposure: intranet
+    host: hlr.mobile.net
+    network_id: mobile-lan
+    bind_ip: 10.24.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Oracle
+      product: oracle-db
+      version: "19.0.0.0"
+    ports: [tcp/1521]
+    criticality: critical
+
+  - id: mobile-dns
+    name: "Mobile DNS"
+    kind: dns
+    exposure: public
+    host: dns.mobile.net
+    network_id: mobile-dmz
+    bind_ip: 10.24.1.11
+    auth: none
+    data_classification: public
+    software:
+      vendor: ISC
+      product: BIND
+      version: "9.18"
+    ports: [tcp/53, udp/53]
+    criticality: medium
+
+  - id: mobile-backup
+    name: "Mobile backup"
+    kind: backup
+    exposure: intranet
+    host: backup.mobile.net
+    network_id: mobile-lan
+    bind_ip: 10.24.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: mobile-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: mobile-billing
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "billing DNS resolution"
+
+  - from_service: mobile-billing
+    to_service: mobile-hlr
+    kind: db-read
+    protocol: tcp/1521
+    encryption: tls
+    label: "subscriber data"
+
+  - from_service: mobile-hlr
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "HLR audit logs"
+
+  - from_service: mobile-backup
+    to_service: mobile-hlr
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "HLR backup"

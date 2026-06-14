@@ -51,15 +51,15 @@ def test_attack_surface_only_public(tiny_network, tmp_path) -> None:
 def test_attack_surface_includes_software(tiny_network, tmp_path) -> None:
     from cybercity_data.models import Service, Software
 
-    org = next(o for o in tiny_network.organizations if o.id == "city-hospital")
+    org = next(o for o in tiny_network.organizations if o.id == "hospital")
     dmz = next(n for n in org.networks if n.kind == "dmz")
     public_with_sw = Service(
         id="hosp-api",
-        org_id="city-hospital",
+        org_id="hospital",
         name="Hospital API",
         kind="api",
         exposure="public",
-        host="api.city-hospital.corp",
+        host="api.hospital.corp",
         network_id=dmz.id,
         bind_ip="10.10.10.20",
         software=Software(vendor="acme", product="api", version="1.0.0", cve_id="CVE-2024-1234"),
@@ -80,7 +80,7 @@ def test_inventory_lists_assets(tiny_network, tmp_path) -> None:
     assets = [
         ServiceAssets(
             svc_id="hosp-web",
-            org_id="city-hospital",
+            org_id="hospital",
             path=tmp_path / "assets" / "hosp-web",
         )
     ]
@@ -200,7 +200,7 @@ def test_render_includes_engine_zip_when_assets_exist(tiny_network, tmp_path) ->
     assets = [
         ServiceAssets(
             svc_id="hosp-web",
-            org_id="city-hospital",
+            org_id="hospital",
             path=tmp_path / "fake-assets" / "hosp-web",
         )
     ]
@@ -224,7 +224,7 @@ def test_render_includes_engine_zip_when_assets_exist(tiny_network, tmp_path) ->
         assert "views/inventory.md" in names
         assert "security/attack-surface.json" in names
         assert "changes.json" in names
-        assert any("assets/services/city-hospital/hosp-web/nginx.conf" in n for n in names)
+        assert any("assets/services/hospital/hosp-web/nginx.conf" in n for n in names)
 
         manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
         assert manifest["schema_version"] == 1

@@ -19,7 +19,7 @@ def _write(path: Path, text: str) -> None:
 def _make_broken_repo(root: Path) -> None:
     """Minimal repo that triggers validator errors (ids + refs) -> exit 1."""
     (root / "organizations").mkdir(parents=True)
-    for org_id, label, idx in (("city-a", "A", 1), ("city-b", "B", 2)):
+    for org_id, label, idx in (("x-a", "A", 1), ("x-b", "B", 2)):
         (root / "organizations" / org_id).mkdir()
         _write(
             root / "organizations" / org_id / "config.yml",
@@ -45,7 +45,7 @@ def _make_broken_repo(root: Path) -> None:
                 "    to_service: ghost\n"
                 "    kind: api-call\n"
                 "    protocol: tcp/443\n"
-                if org_id == "city-b"
+                if org_id == "x-b"
                 else ""
             ),
         )
@@ -54,15 +54,15 @@ def _make_broken_repo(root: Path) -> None:
 def _make_minimal_repo(root: Path) -> None:
     """Minimal valid repo with one org."""
     (root / "organizations").mkdir(parents=True)
-    (root / "organizations" / "city-x").mkdir()
+    (root / "organizations" / "x").mkdir()
     _write(
-        root / "organizations" / "city-x" / "config.yml",
-        "id: city-x\n"
+        root / "organizations" / "x" / "config.yml",
+        "id: x\n"
         "name: X\n"
         "kind: government\n"
         "network_index: 1\n"
         "networks:\n"
-        "  - id: city-x-dmz\n"
+        "  - id: x-dmz\n"
         "    kind: dmz\n"
         "    cidr: 10.1.1.0/24\n"
         "services:\n"
@@ -71,7 +71,7 @@ def _make_minimal_repo(root: Path) -> None:
         "    kind: web\n"
         "    exposure: public\n"
         "    host: web.example\n"
-        "    network_id: city-x-dmz\n"
+        "    network_id: x-dmz\n"
         "    bind_ip: 10.1.1.10\n",
     )
 
@@ -156,7 +156,7 @@ def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
         app,
         [
             "init",
-            "city-hospital",
+            "hospital",
             "--kind",
             "healthcare",
             "--network-index",
@@ -166,14 +166,14 @@ def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    cfg = tmp_path / "organizations" / "city-hospital" / "config.yml"
+    cfg = tmp_path / "organizations" / "hospital" / "config.yml"
     assert cfg.exists()
     text = cfg.read_text(encoding="utf-8")
-    assert "id: city-hospital" in text
+    assert "id: hospital" in text
     assert "kind: healthcare" in text
     assert "network_index: 10" in text
-    assert "city-hospital-dmz" in text
-    assert "city-hospital-web" in text
+    assert "hospital-dmz" in text
+    assert "hospital-web" in text
 
 
 def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> None:
@@ -182,7 +182,7 @@ def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> No
         app,
         [
             "init",
-            "city-hospital",
+            "hospital",
             "--kind",
             "healthcare",
             "--network-index",
@@ -193,7 +193,7 @@ def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> No
         ],
     )
     assert result.exit_code == 0, result.output
-    cfg = tmp_path / "organizations" / "city-hospital" / "config.yml"
+    cfg = tmp_path / "organizations" / "hospital" / "config.yml"
     text = cfg.read_text(encoding="utf-8")
     assert "networks: []" in text
     assert "services: []" in text
@@ -211,7 +211,7 @@ def test_check_json_on_missing_dir(tmp_path: Path) -> None:
 
 def test_check_exits_1_on_bad_yaml(tmp_path: Path) -> None:
     _make_minimal_repo(tmp_path)
-    _write(tmp_path / "organizations" / "city-x" / "config.yml", "not: valid: yaml: [\n")
+    _write(tmp_path / "organizations" / "x" / "config.yml", "not: valid: yaml: [\n")
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
 
@@ -220,8 +220,8 @@ def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
     """Bad organization kind -> loader/schema error -> exit 1."""
     _make_minimal_repo(tmp_path)
     _write(
-        tmp_path / "organizations" / "city-x" / "config.yml",
-        "id: city-x\nname: X\nkind: not-a-kind\nnetwork_index: 1\nnetworks: []\nservices: []\n",
+        tmp_path / "organizations" / "x" / "config.yml",
+        "id: x\nname: X\nkind: not-a-kind\nnetwork_index: 1\nnetworks: []\nservices: []\n",
     )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
@@ -245,7 +245,7 @@ def test_init_fails_without_organizations(tmp_path: Path) -> None:
         app,
         [
             "init",
-            "city-x",
+            "x",
             "--kind",
             "government",
             "--network-index",
@@ -259,12 +259,12 @@ def test_init_fails_without_organizations(tmp_path: Path) -> None:
 
 def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
+    (tmp_path / "organizations" / "x").mkdir()
     result = runner.invoke(
         app,
         [
             "init",
-            "city-x",
+            "x",
             "--kind",
             "government",
             "--network-index",

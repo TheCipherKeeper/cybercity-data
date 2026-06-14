@@ -1,0 +1,169 @@
+id: hotel
+name: "City Hotel Group"
+kind: retail
+network_index: 25
+
+description: |
+  Сеть городских отелей. Обслуживает бронирования, гостей,
+  рестораны/SPA и внутренний POS.
+
+networks:
+  - id: hotel-dmz
+    kind: dmz
+    cidr: 10.25.1.0/24
+  - id: hotel-lan
+    kind: lan
+    cidr: 10.25.129.0/24
+  - id: hotel-mgmt
+    kind: mgmt
+    cidr: 10.25.253.0/24
+
+services:
+  - id: hotel-web
+    name: "Hotel booking portal"
+    kind: web
+    exposure: public
+    host: portal.hotel.retail
+    network_id: hotel-dmz
+    bind_ip: 10.25.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: hotel-pms
+    name: "Hotel property management"
+    kind: web
+    exposure: intranet
+    host: pms.hotel.retail
+    network_id: hotel-lan
+    bind_ip: 10.25.129.10
+    auth: sso
+    data_classification: confidential
+    software:
+      vendor: Oracle
+      product: hospitality-pms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: hotel-db
+    name: "Hotel guest DB"
+    kind: db
+    exposure: intranet
+    host: db.hotel.retail
+    network_id: hotel-lan
+    bind_ip: 10.25.129.11
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: hotel-wifi
+    name: "Hotel guest Wi-Fi"
+    kind: iot
+    exposure: public
+    host: wifi.hotel.retail
+    network_id: hotel-dmz
+    bind_ip: 10.25.1.11
+    auth: none
+    data_classification: public
+    ports: [tcp/80, tcp/443, udp/53]
+    criticality: low
+
+  - id: hotel-pos
+    name: "Hotel restaurant/SPA POS"
+    kind: pos
+    exposure: intranet
+    host: pos.hotel.retail
+    network_id: hotel-lan
+    bind_ip: 10.25.129.12
+    auth: sso
+    data_classification: pci
+    software:
+      vendor: Custom
+      product: hotel-pos
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: hotel-backup
+    name: "Hotel backup"
+    kind: backup
+    exposure: intranet
+    host: backup.hotel.retail
+    network_id: hotel-lan
+    bind_ip: 10.25.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: hotel-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: hotel-pms
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "PMS DNS resolution"
+
+  - from_service: hotel-pms
+    to_service: hotel-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "guest records"
+
+  - from_service: hotel-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: hotel-wifi
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "captive portal DNS"
+
+  - from_service: hotel-pos
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: hotel-pos
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "POS DNS resolution"
+
+  - from_service: hotel-backup
+    to_service: hotel-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "guest DB backup"

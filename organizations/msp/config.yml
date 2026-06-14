@@ -1,0 +1,159 @@
+id: msp
+name: "City Managed Services Provider"
+kind: msp
+network_index: 17
+
+description: |
+  Городской MSP, обслуживающий малый и средний бизнес. Предоставляет RMM,
+  удалённую поддержку, антивирусную консоль и резервное копирование.
+
+networks:
+  - id: msp-dmz
+    kind: dmz
+    cidr: 10.17.1.0/24
+  - id: msp-lan
+    kind: lan
+    cidr: 10.17.129.0/24
+  - id: msp-mgmt
+    kind: mgmt
+    cidr: 10.17.253.0/24
+
+services:
+  - id: msp-rmm
+    name: "MSP RMM console"
+    kind: rmm
+    exposure: public
+    host: rmm.msp.corp
+    network_id: msp-dmz
+    bind_ip: 10.17.1.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Nable
+      product: n-central
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: msp-ticketing
+    name: "MSP ticketing"
+    kind: tickets
+    exposure: intranet
+    host: tickets.msp.corp
+    network_id: msp-lan
+    bind_ip: 10.17.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: ConnectWise
+      product: manage
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: msp-av
+    name: "MSP antivirus console"
+    kind: rmm
+    exposure: intranet
+    host: av.msp.corp
+    network_id: msp-lan
+    bind_ip: 10.17.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: CrowdStrike
+      product: falcon
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: msp-backup
+    name: "MSP backup console"
+    kind: backup
+    exposure: intranet
+    host: backup.msp.corp
+    network_id: msp-lan
+    bind_ip: 10.17.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Datto
+      product: autotask
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: msp-db
+    name: "MSP customer config DB"
+    kind: db
+    exposure: intranet
+    host: db.msp.corp
+    network_id: msp-lan
+    bind_ip: 10.17.129.13
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: msp-web
+    name: "MSP customer portal"
+    kind: web
+    exposure: public
+    host: portal.msp.corp
+    network_id: msp-dmz
+    bind_ip: 10.17.1.11
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+links:
+  - from_service: msp-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "customer portal DNS"
+
+  - from_service: msp-rmm
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "RMM DNS"
+
+  - from_service: msp-ticketing
+    to_service: msp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "ticketing reads customer config"
+
+  - from_service: msp-av
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "AV console logs"
+
+  - from_service: msp-backup
+    to_service: msp-db
+    kind: backup-of
+    protocol: tcp/5432
+    encryption: tls
+    label: "backup customer config DB"
+
+  - from_service: msp-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "config DB logs"

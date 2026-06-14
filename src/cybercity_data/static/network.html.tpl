@@ -302,7 +302,6 @@
       const kinds = Array.from(new Set(nodes.map(n => n.kind))).sort();
       const activeKinds = new Set(kinds);
 
-      const orgs = Array.from(new Set(nodes.map(n => n.org_id))).sort();
       const activeOrgs = new Set(orgs);
 
       const legendEl = document.getElementById('legend');
@@ -371,7 +370,7 @@
 
       const g = svg.append('g');
       const zoom = d3.zoom()
-        .scaleExtent([0.1, 4])
+        .scaleExtent([0.05, 6])
         .on('zoom', (e) => g.attr('transform', e.transform));
       svg.call(zoom);
 
@@ -391,10 +390,10 @@
         .attr('fill', '#5c6a85');
 
       const simulation = d3.forceSimulation(nodes)
-        .force('link', d3.forceLink(links).id(d => d.id).distance(140))
-        .force('charge', d3.forceManyBody().strength(-450))
+        .force('link', d3.forceLink(links).id(d => d.id).distance(240))
+        .force('charge', d3.forceManyBody().strength(-1000))
         .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collide', d3.forceCollide().radius(32));
+        .force('collide', d3.forceCollide().radius(48));
 
       // Compute offsets for multiple links between the same pair of nodes.
       const linkKey = (a, b) => [a, b].sort().join('||');

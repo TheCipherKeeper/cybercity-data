@@ -1,0 +1,143 @@
+id: prison
+name: "City Correctional Facility"
+kind: government
+network_index: 19
+
+description: |
+  Городское исправительное учреждение. Управляет данными заключённых,
+  посещениями, видеонаблюдением и внутренней безопасностью.
+
+networks:
+  - id: prison-dmz
+    kind: dmz
+    cidr: 10.19.1.0/24
+  - id: prison-lan
+    kind: lan
+    cidr: 10.19.129.0/24
+  - id: prison-mgmt
+    kind: mgmt
+    cidr: 10.19.253.0/24
+
+services:
+  - id: prison-web
+    name: "Prison public portal"
+    kind: web
+    exposure: public
+    host: portal.prison.gov
+    network_id: prison-dmz
+    bind_ip: 10.19.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: prison-ims
+    name: "Inmate management system"
+    kind: web
+    exposure: intranet
+    host: ims.prison.gov
+    network_id: prison-lan
+    bind_ip: 10.19.129.10
+    auth: sso
+    data_classification: restricted
+    software:
+      vendor: Custom
+      product: inmate-management
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: prison-cctv
+    name: "Prison CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.prison.gov
+    network_id: prison-lan
+    bind_ip: 10.19.129.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Hikvision
+      product: ivms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: prison-db
+    name: "Prison inmate DB"
+    kind: db
+    exposure: intranet
+    host: db.prison.gov
+    network_id: prison-lan
+    bind_ip: 10.19.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: prison-backup
+    name: "Prison backup"
+    kind: backup
+    exposure: intranet
+    host: backup.prison.gov
+    network_id: prison-lan
+    bind_ip: 10.19.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: prison-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: prison-ims
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "IMS DNS resolution"
+
+  - from_service: prison-ims
+    to_service: prison-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "inmate records"
+
+  - from_service: prison-cctv
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CCTV DNS resolution"
+
+  - from_service: prison-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: prison-backup
+    to_service: prison-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "inmate DB backup"

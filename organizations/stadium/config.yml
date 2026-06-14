@@ -1,0 +1,169 @@
+id: stadium
+name: "City Sports Stadium"
+kind: retail
+network_index: 28
+
+description: |
+  Городской спортивный стадион и концертная арена. Продажа билетов,
+  fan Wi-Fi, видеонаблюдение и управление мероприятиями.
+
+networks:
+  - id: stadium-dmz
+    kind: dmz
+    cidr: 10.28.1.0/24
+  - id: stadium-lan
+    kind: lan
+    cidr: 10.28.129.0/24
+  - id: stadium-mgmt
+    kind: mgmt
+    cidr: 10.28.253.0/24
+
+services:
+  - id: stadium-web
+    name: "Stadium website"
+    kind: web
+    exposure: public
+    host: portal.stadium.retail
+    network_id: stadium-dmz
+    bind_ip: 10.28.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: stadium-tickets
+    name: "Stadium ticketing"
+    kind: web
+    exposure: intranet
+    host: tickets.stadium.retail
+    network_id: stadium-lan
+    bind_ip: 10.28.129.10
+    auth: sso
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: ticketing
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: stadium-cctv
+    name: "Stadium CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.stadium.retail
+    network_id: stadium-lan
+    bind_ip: 10.28.129.11
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: ivms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: stadium-wifi
+    name: "Stadium fan Wi-Fi"
+    kind: iot
+    exposure: public
+    host: wifi.stadium.retail
+    network_id: stadium-dmz
+    bind_ip: 10.28.1.11
+    auth: none
+    data_classification: public
+    ports: [tcp/80, tcp/443, udp/53]
+    criticality: low
+
+  - id: stadium-db
+    name: "Stadium events DB"
+    kind: db
+    exposure: intranet
+    host: db.stadium.retail
+    network_id: stadium-lan
+    bind_ip: 10.28.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: stadium-backup
+    name: "Stadium backup"
+    kind: backup
+    exposure: intranet
+    host: backup.stadium.retail
+    network_id: stadium-lan
+    bind_ip: 10.28.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: stadium-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: stadium-tickets
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "ticketing DNS resolution"
+
+  - from_service: stadium-tickets
+    to_service: stadium-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "events and tickets"
+
+  - from_service: stadium-tickets
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: stadium-cctv
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CCTV DNS resolution"
+
+  - from_service: stadium-wifi
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "captive portal DNS"
+
+  - from_service: stadium-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: stadium-backup
+    to_service: stadium-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "events DB backup"

@@ -130,7 +130,7 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
 | `ip-in-network` | error | bind_ip lies inside service network CIDR |
 | `ip-unique` | error | bind_ip is unique within the same network |
 | `network-overlap` | error | networks do not overlap |
-| `city-ip-scheme` | error | every org CIDR lives under `10.<network_index>.x.x` |
+| `ip-scheme` | error | every org CIDR lives under `10.<network_index>.x.x` |
 | `exposure-network` | error | exposure allowed on network kind |
 | `self-loop` | error | link does not point to itself |
 | `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |

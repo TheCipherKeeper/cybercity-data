@@ -1,0 +1,154 @@
+id: gas
+name: "City Gas Utility"
+kind: infra-utilities
+network_index: 9
+
+description: |
+  Городская газовая служба. Управляет распределительной сетью,
+  SCADA-шлюзами, telemetry и публичными отчётами о потреблении.
+  OT-сегмент изолирован от корпоративной сети.
+
+networks:
+  - id: gas-dmz
+    kind: dmz
+    cidr: 10.9.1.0/24
+  - id: gas-lan
+    kind: lan
+    cidr: 10.9.129.0/24
+  - id: gas-ot
+    kind: ot
+    cidr: 10.9.128.0/24
+  - id: gas-mgmt
+    kind: mgmt
+    cidr: 10.9.253.0/24
+
+services:
+  - id: gas-web
+    name: "Gas utility portal"
+    kind: web
+    exposure: public
+    host: portal.gas.corp
+    network_id: gas-dmz
+    bind_ip: 10.9.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: gas-scada
+    name: "Gas SCADA gateway"
+    kind: ot
+    exposure: ot
+    host: scada.gas.corp
+    network_id: gas-ot
+    bind_ip: 10.9.128.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: InductiveAutomation
+      product: ignition
+      version: "8.1"
+    ports: [tcp/443, tcp/502]
+    criticality: critical
+
+  - id: gas-hmi
+    name: "Gas HMI"
+    kind: ot
+    exposure: ot
+    host: hmi.gas.corp
+    network_id: gas-ot
+    bind_ip: 10.9.128.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Aveva
+      product: intouch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: gas-db
+    name: "Gas telemetry DB"
+    kind: db
+    exposure: intranet
+    host: db.gas.corp
+    network_id: gas-lan
+    bind_ip: 10.9.129.10
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: gas-backup
+    name: "Gas utility backup"
+    kind: backup
+    exposure: intranet
+    host: backup.gas.corp
+    network_id: gas-lan
+    bind_ip: 10.9.129.11
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: gas-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: gas-scada
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "SCADA DNS resolution"
+
+  - from_service: gas-scada
+    to_service: gas-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "telemetry data"
+
+  - from_service: gas-hmi
+    to_service: gas-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "operator telemetry"
+
+  - from_service: gas-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: gas-scada
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "OT time sync"
+
+  - from_service: gas-backup
+    to_service: gas-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "telemetry DB backup"

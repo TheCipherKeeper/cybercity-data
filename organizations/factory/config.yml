@@ -1,0 +1,146 @@
+id: factory
+name: "City Manufacturing Plant"
+kind: infra-utilities
+network_index: 10
+
+description: |
+  Городское производственное предприятие. Содержит OT-сеть с PLC, MES и ERP.
+  Удалённый мониторинг и поставки согласуются через городские сервисы.
+
+networks:
+  - id: factory-ot
+    kind: ot
+    cidr: 10.10.0.0/24
+  - id: factory-dmz
+    kind: dmz
+    cidr: 10.10.1.0/24
+  - id: factory-lan
+    kind: lan
+    cidr: 10.10.129.0/24
+  - id: factory-mgmt
+    kind: mgmt
+    cidr: 10.10.253.0/24
+
+services:
+  - id: factory-plc
+    name: "Factory PLC controller"
+    kind: ot
+    exposure: ot
+    host: plc.factory.ot
+    network_id: factory-ot
+    bind_ip: 10.10.0.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Siemens
+      product: SIMATIC
+      version: "16.0"
+    ports: [tcp/102]
+    criticality: critical
+
+  - id: factory-hmi
+    name: "Factory HMI"
+    kind: ot
+    exposure: ot
+    host: hmi.factory.ot
+    network_id: factory-ot
+    bind_ip: 10.10.0.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Siemens
+      product: wincc
+      version: "8.0"
+    ports: [tcp/44818]
+    criticality: high
+
+  - id: factory-mes
+    name: "Factory MES"
+    kind: erp
+    exposure: intranet
+    host: mes.factory.corp
+    network_id: factory-lan
+    bind_ip: 10.10.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: internal
+      product: mes
+      version: "3.0.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: factory-erp
+    name: "Factory ERP"
+    kind: erp
+    exposure: intranet
+    host: erp.factory.corp
+    network_id: factory-lan
+    bind_ip: 10.10.129.11
+    auth: sso
+    data_classification: confidential
+    software:
+      vendor: SAP
+      product: s4hana
+      version: "2023"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: factory-web
+    name: "Factory supplier portal"
+    kind: web
+    exposure: public
+    host: portal.factory.corp
+    network_id: factory-dmz
+    bind_ip: 10.10.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+links:
+  - from_service: factory-hmi
+    to_service: factory-plc
+    kind: api-call
+    protocol: tcp/102
+    encryption: none
+    label: "HMI controls PLC"
+
+  - from_service: factory-mes
+    to_service: factory-plc
+    kind: db-read
+    protocol: tcp/102
+    encryption: none
+    label: "MES reads PLC telemetry"
+
+  - from_service: factory-erp
+    to_service: factory-mes
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "ERP fetches production data"
+
+  - from_service: factory-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "supplier portal DNS"
+
+  - from_service: factory-erp
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "ERP audit logs"
+
+  - from_service: factory-plc
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "PLC time sync"

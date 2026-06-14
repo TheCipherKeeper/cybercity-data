@@ -1,0 +1,213 @@
+id: mall
+name: "City Mall"
+kind: retail
+network_index: 6
+
+description: |
+  Крупный торговый центр города. Объединяет POS-терминалы арендаторов,
+  программу лояльности, гостевой Wi-Fi и IoT-сенсоры инженерных систем.
+  Платежи идут через банковский API.
+
+networks:
+  - id: mall-dmz
+    kind: dmz
+    cidr: 10.6.1.0/24
+  - id: mall-lan
+    kind: lan
+    cidr: 10.6.129.0/24
+  - id: mall-mgmt
+    kind: mgmt
+    cidr: 10.6.253.0/24
+
+services:
+  - id: mall-web
+    name: "Mall website"
+    kind: web
+    exposure: public
+    host: www.mall.retail
+    network_id: mall-dmz
+    bind_ip: 10.6.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: mall-wifi
+    name: "Mall guest Wi-Fi portal"
+    kind: web
+    exposure: public
+    host: wifi.mall.retail
+    network_id: mall-dmz
+    bind_ip: 10.6.1.11
+    auth: none
+    data_classification: public
+    software:
+      vendor: Aruba
+      product: aruba
+      version: "unknown"
+    ports: [tcp/443, tcp/80]
+    criticality: low
+
+  - id: mall-pos
+    name: "Mall POS"
+    kind: pos
+    exposure: intranet
+    host: pos.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.10
+    auth: local
+    data_classification: pii
+    software:
+      vendor: Square
+      product: Square-POS
+      version: "5.1"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: mall-idp
+    name: "Mall SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Okta
+      product: okta
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: mall-db
+    name: "Mall loyalty database"
+    kind: db
+    exposure: intranet
+    host: db.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.13
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: MySQL
+      product: mysql
+      version: "8.0"
+    ports: [tcp/3306]
+    criticality: high
+
+  - id: mall-cctv
+    name: "Mall CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.11
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Axis
+      product: camera
+      version: "11.0"
+    ports: [tcp/554]
+    criticality: medium
+
+  - id: mall-iot
+    name: "Mall building automation"
+    kind: iot
+    exposure: intranet
+    host: iot.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.14
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Schneider
+      product: electric
+      version: "unknown"
+    ports: [tcp/502]
+    criticality: medium
+
+  - id: mall-backup
+    name: "Mall backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.mall.retail
+    network_id: mall-lan
+    bind_ip: 10.6.129.15
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: veeam
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: mall-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "mall website DNS resolution"
+
+  - from_service: mall-wifi
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "guest Wi-Fi DNS resolution"
+
+  - from_service: mall-iot
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "IoT DNS resolution"
+
+  - from_service: mall-pos
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "card-present payment authorisation"
+
+  - from_service: mall-pos
+    to_service: mall-db
+    kind: db-read
+    protocol: tcp/3306
+    encryption: tls
+    label: "POS reads loyalty DB"
+
+  - from_service: mall-pos
+    to_service: mall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "POS authentication"
+
+  - from_service: mall-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "loyalty DB audit logs"
+
+  - from_service: mall-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: mall-backup
+    to_service: mall-db
+    kind: backup-of
+    protocol: tcp/3306
+    encryption: tls
+    label: "backup loyalty DB"

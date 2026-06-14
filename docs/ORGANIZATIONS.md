@@ -17,13 +17,13 @@
 
 ```
 organizations/
-├── city-hall/
+├── hall/
 │   ├── config.yml
 │   └── services/            # опциональные ассеты сервисов
 │       └── hall-web/
 │           ├── nginx.conf
 │           └── certs/
-├── city-bank/
+├── bank/
 │   ├── config.yml
 │   └── services/
 │       └── bank-web/
@@ -35,7 +35,7 @@ organizations/
 ## Шаблон `config.yml`
 
 ```yaml
-id: city-hospital            # должен совпадать с именем папки
+id: hospital            # должен совпадать с именем папки
 name: "City General Hospital"
 kind: healthcare             # government | healthcare | infra-utilities | finance |
                              # retail | media-telecom | education | msp
@@ -48,13 +48,13 @@ description: |
 # Сети организации (ОБЯЗАТЕЛЬНЫ в v2.0).
 # Loader не выделяет IP-диапазоны автоматически.
 networks:
-  - id: city-hospital-dmz
+  - id: hospital-dmz
     kind: dmz
     cidr: 10.10.10.0/24
-  - id: city-hospital-lan
+  - id: hospital-lan
     kind: lan
     cidr: 10.10.11.0/24
-  - id: city-hospital-mgmt
+  - id: hospital-mgmt
     kind: mgmt
     cidr: 10.10.253.0/24
 
@@ -69,8 +69,8 @@ services:
                                # backup | log | erp | hrms | billing | tickets |
                                # wiki | crm | pharmacy-front | iot
     exposure: public           # public | intranet | ot | mgmt
-    host: portal.city-hospital.corp
-    network_id: city-hospital-dmz
+    host: portal.hospital.corp
+    network_id: hospital-dmz
     bind_ip: 10.10.10.10
     auth: sso
     data_classification: public
@@ -88,8 +88,8 @@ services:
     name: "Mock printer"
     kind: iot
     exposure: intranet
-    host: mock-printer-01.city-hospital.corp
-    network_id: city-hospital-lan
+    host: mock-printer-01.hospital.corp
+    network_id: hospital-lan
     bind_ip: 10.10.11.15
     criticality: low
     ports: [tcp/9100, tcp/80]
@@ -126,7 +126,7 @@ links:
 - `lan` / `ot` — третий октет `128-252` (например `10.10.129.0/24`).
 - `mgmt` — третий октет `253` (например `10.10.253.0/24`).
 
-Валидатор проверяет кодом `city-ip-scheme`, что каждая `cidr`
+Валидатор проверяет кодом `ip-scheme`, что каждая `cidr`
 начинается с `10.<network_index>.`.
 
 ## Соглашения

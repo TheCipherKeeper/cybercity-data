@@ -1,0 +1,143 @@
+id: police
+name: "City Police Department"
+kind: government
+network_index: 13
+
+description: |
+  Городское полицейское управление. Содержит критичные системы: базу данных
+  дел, видеонаблюдение, радиосвязь и интеграцию с муниципальным SSO.
+
+networks:
+  - id: police-dmz
+    kind: dmz
+    cidr: 10.13.1.0/24
+  - id: police-lan
+    kind: lan
+    cidr: 10.13.129.0/24
+  - id: police-mgmt
+    kind: mgmt
+    cidr: 10.13.253.0/24
+
+services:
+  - id: police-web
+    name: "Police public portal"
+    kind: web
+    exposure: public
+    host: police.city.gov
+    network_id: police-dmz
+    bind_ip: 10.13.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: police-cad
+    name: "Police CAD"
+    kind: web
+    exposure: intranet
+    host: cad.police.city.gov
+    network_id: police-lan
+    bind_ip: 10.13.129.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: internal
+      product: cad
+      version: "5.0.0"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: police-db
+    name: "Police records DB"
+    kind: db
+    exposure: intranet
+    host: db.police.city.gov
+    network_id: police-lan
+    bind_ip: 10.13.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Oracle
+      product: DB
+      version: "19.0.0.0"
+    ports: [tcp/1521]
+    criticality: critical
+
+  - id: police-cctv
+    name: "Police CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.police.city.gov
+    network_id: police-lan
+    bind_ip: 10.13.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Motorola
+      product: video
+      version: "unknown"
+    ports: [tcp/554]
+    criticality: high
+
+  - id: police-radio
+    name: "Police radio gateway"
+    kind: vpn
+    exposure: intranet
+    host: radio.police.city.gov
+    network_id: police-lan
+    bind_ip: 10.13.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Motorola
+      product: p25gateway
+      version: "unknown"
+    ports: [udp/5060]
+    criticality: critical
+
+links:
+  - from_service: police-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: police-cad
+    to_service: police-db
+    kind: db-read
+    protocol: tcp/1521
+    encryption: tls
+    label: "CAD reads records"
+
+  - from_service: police-cad
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CAD DNS"
+
+  - from_service: police-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: police-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "records DB audit logs"
+
+  - from_service: police-radio
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "radio gateway time sync"

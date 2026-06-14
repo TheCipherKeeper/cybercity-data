@@ -1,0 +1,220 @@
+id: school
+name: "City School District"
+kind: education
+network_index: 5
+
+description: |
+  Городская школьная сеть. Обслуживает ученический портал, систему управления
+  обучением (LMS), базу данных учащихся и видеонаблюдение. Платежи и идентификация
+  частично делегированы внешним городским сервисам.
+
+networks:
+  - id: school-dmz
+    kind: dmz
+    cidr: 10.5.1.0/24
+  - id: school-lan
+    kind: lan
+    cidr: 10.5.129.0/24
+  - id: school-mgmt
+    kind: mgmt
+    cidr: 10.5.253.0/24
+
+services:
+  - id: school-web
+    name: "School public portal"
+    kind: web
+    exposure: public
+    host: portal.school.edu
+    network_id: school-dmz
+    bind_ip: 10.5.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: Apache
+      product: httpd
+      version: "2.4.59"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: school-wifi
+    name: "School guest Wi-Fi portal"
+    kind: web
+    exposure: public
+    host: wifi.school.edu
+    network_id: school-dmz
+    bind_ip: 10.5.1.11
+    auth: none
+    data_classification: public
+    software:
+      vendor: Cisco
+      product: meraki
+      version: "28.0"
+    ports: [tcp/443, tcp/80]
+    criticality: low
+
+  - id: school-lms
+    name: "School LMS"
+    kind: web
+    exposure: intranet
+    host: lms.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: Moodle
+      product: moodle
+      version: "4.3.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: school-db
+    name: "School student records"
+    kind: db
+    exposure: intranet
+    host: db.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.11
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "16.0"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: school-idp
+    name: "School SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: school-cctv
+    name: "School CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.13
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: dvr
+      version: "5.0"
+    ports: [tcp/554]
+    criticality: medium
+
+  - id: school-backup
+    name: "School backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.14
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: veeam
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+  - id: school-print
+    name: "School printer"
+    kind: iot
+    exposure: intranet
+    host: printer.school.edu
+    network_id: school-lan
+    bind_ip: 10.5.129.15
+    auth: none
+    data_classification: internal
+    software:
+      vendor: HP
+      product: jetdirect
+      version: "unknown"
+    ports: [tcp/9100, tcp/80]
+    criticality: low
+
+links:
+  - from_service: school-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal DNS resolution"
+
+  - from_service: school-wifi
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "guest Wi-Fi DNS resolution"
+
+  - from_service: school-lms
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "LMS DNS resolution"
+
+  - from_service: school-lms
+    to_service: school-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "LMS reads student records"
+
+  - from_service: school-lms
+    to_service: school-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "LMS authentication"
+
+  - from_service: school-web
+    to_service: school-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal authentication"
+
+  - from_service: school-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "student DB audit logs"
+
+  - from_service: school-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: school-backup
+    to_service: school-db
+    kind: backup-of
+    protocol: tcp/5432
+    encryption: tls
+    label: "backup student DB"
+
+  - from_service: school-print
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "printer DNS resolution"

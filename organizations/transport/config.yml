@@ -1,0 +1,143 @@
+id: transport
+name: "City Public Transport"
+kind: infra-utilities
+network_index: 11
+
+description: |
+  Городской транспортный оператор: автобусы, трамваи, метро. Управляет
+  GPS-мониторингом, билетной системой и CCTV на остановках.
+
+networks:
+  - id: transport-dmz
+    kind: dmz
+    cidr: 10.11.1.0/24
+  - id: transport-lan
+    kind: lan
+    cidr: 10.11.129.0/24
+  - id: transport-mgmt
+    kind: mgmt
+    cidr: 10.11.253.0/24
+
+services:
+  - id: transport-web
+    name: "Transport schedule portal"
+    kind: web
+    exposure: public
+    host: transport.city.gov
+    network_id: transport-dmz
+    bind_ip: 10.11.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: transport-tickets
+    name: "Transport ticketing"
+    kind: pos
+    exposure: intranet
+    host: tickets.transport.corp
+    network_id: transport-lan
+    bind_ip: 10.11.129.10
+    auth: local
+    data_classification: pii
+    software:
+      vendor: internal
+      product: fare-system
+      version: "4.0.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: transport-gps
+    name: "Transport fleet GPS"
+    kind: iot
+    exposure: intranet
+    host: gps.transport.corp
+    network_id: transport-lan
+    bind_ip: 10.11.129.11
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: internal
+      product: fleet-tracker
+      version: "2.0.0"
+    ports: [tcp/5000]
+    criticality: high
+
+  - id: transport-cctv
+    name: "Transport CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.transport.corp
+    network_id: transport-lan
+    bind_ip: 10.11.129.12
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: dvr
+      version: "5.0"
+    ports: [tcp/554]
+    criticality: medium
+
+  - id: transport-db
+    name: "Transport operations DB"
+    kind: db
+    exposure: intranet
+    host: db.transport.corp
+    network_id: transport-lan
+    bind_ip: 10.11.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+links:
+  - from_service: transport-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "schedule portal DNS"
+
+  - from_service: transport-tickets
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "ticket payment authorisation"
+
+  - from_service: transport-tickets
+    to_service: transport-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "ticketing reads ops DB"
+
+  - from_service: transport-gps
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "fleet time sync"
+
+  - from_service: transport-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: transport-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "ops DB audit logs"

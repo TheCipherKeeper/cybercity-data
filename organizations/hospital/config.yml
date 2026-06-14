@@ -1,0 +1,151 @@
+id: hospital
+name: "City General Hospital"
+kind: healthcare
+network_index: 3
+
+description: |
+  Крупная городская больница. Ведёт электронные медицинские карты,
+  хранит изображения PACS, управляет приёмным отделением и лабораторией.
+  Использует городскую инфраструктуру DNS и SIEM.
+
+networks:
+  - id: hospital-dmz
+    kind: dmz
+    cidr: 10.3.1.0/24
+  - id: hospital-lan
+    kind: lan
+    cidr: 10.3.129.0/24
+  - id: hospital-mgmt
+    kind: mgmt
+    cidr: 10.3.253.0/24
+
+services:
+  - id: hosp-web
+    name: "Hospital portal"
+    kind: web
+    exposure: public
+    host: portal.hospital.med
+    network_id: hospital-dmz
+    bind_ip: 10.3.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: Apache
+      product: httpd
+      version: "2.4.57"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: hosp-emr
+    name: "Hospital EMR"
+    kind: web
+    exposure: intranet
+    host: emr.hospital.med
+    network_id: hospital-lan
+    bind_ip: 10.3.129.10
+    auth: sso
+    data_classification: phi
+    software:
+      vendor: Epic
+      product: epic-hyperspace
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: hosp-pacs
+    name: "Hospital PACS"
+    kind: file-share
+    exposure: intranet
+    host: pacs.hospital.med
+    network_id: hospital-lan
+    bind_ip: 10.3.129.11
+    auth: sso
+    data_classification: phi
+    software:
+      vendor: GE
+      product: centricity-pacs
+      version: "unknown"
+    ports: [tcp/443, tcp/104]
+    criticality: high
+
+  - id: hosp-db
+    name: "Hospital patient DB"
+    kind: db
+    exposure: intranet
+    host: db.hospital.med
+    network_id: hospital-lan
+    bind_ip: 10.3.129.12
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: hosp-backup
+    name: "Hospital backup"
+    kind: backup
+    exposure: intranet
+    host: backup.hospital.med
+    network_id: hospital-lan
+    bind_ip: 10.3.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: hosp-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: hosp-emr
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "EMR DNS resolution"
+
+  - from_service: hosp-emr
+    to_service: hosp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "patient records"
+
+  - from_service: hosp-pacs
+    to_service: hosp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "imaging metadata"
+
+  - from_service: hosp-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: hosp-backup
+    to_service: hosp-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "patient DB backup"
+
+  - from_service: hosp-emr
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "EMR audit logs"

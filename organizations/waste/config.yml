@@ -1,0 +1,139 @@
+id: waste
+name: "City Waste Management"
+kind: infra-utilities
+network_index: 22
+
+description: |
+  Служба по вывозу мусора и переработке. Управляет мусоровозами,
+  маршрутами, GPS-трекингом и площадками переработки.
+
+networks:
+  - id: waste-dmz
+    kind: dmz
+    cidr: 10.22.1.0/24
+  - id: waste-lan
+    kind: lan
+    cidr: 10.22.129.0/24
+  - id: waste-mgmt
+    kind: mgmt
+    cidr: 10.22.253.0/24
+
+services:
+  - id: waste-web
+    name: "Waste management portal"
+    kind: web
+    exposure: public
+    host: portal.waste.corp
+    network_id: waste-dmz
+    bind_ip: 10.22.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: waste-dispatch
+    name: "Fleet dispatch"
+    kind: web
+    exposure: intranet
+    host: dispatch.waste.corp
+    network_id: waste-lan
+    bind_ip: 10.22.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: Custom
+      product: fleet-dispatch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: waste-gps
+    name: "Vehicle GPS tracker"
+    kind: iot
+    exposure: intranet
+    host: gps.waste.corp
+    network_id: waste-lan
+    bind_ip: 10.22.129.11
+    auth: certificate
+    data_classification: internal
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: waste-db
+    name: "Waste operations DB"
+    kind: db
+    exposure: intranet
+    host: db.waste.corp
+    network_id: waste-lan
+    bind_ip: 10.22.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: waste-backup
+    name: "Waste backup"
+    kind: backup
+    exposure: intranet
+    host: backup.waste.corp
+    network_id: waste-lan
+    bind_ip: 10.22.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: medium
+
+links:
+  - from_service: waste-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: waste-dispatch
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "dispatch DNS resolution"
+
+  - from_service: waste-dispatch
+    to_service: waste-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "routes and fleet data"
+
+  - from_service: waste-gps
+    to_service: waste-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "vehicle positions"
+
+  - from_service: waste-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: waste-backup
+    to_service: waste-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "operations DB backup"

@@ -20,7 +20,7 @@ def test_find_org_dirs_skips_underscore_dirs(tiny_path: Path) -> None:
         orgs = find_org_dirs(tiny_path)
         names = [p.name for p in orgs]
         assert "_archive" not in names
-        assert {"city-hospital", "city-courthouse", "city-power"} <= set(names)
+        assert {"hospital", "courthouse", "power"} <= set(names)
     finally:
         import shutil
 
@@ -62,8 +62,8 @@ def test_load_missing_organizations_dir(tmp_path: Path) -> None:
 
 def test_load_l003_id_mismatch(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
         "id: different\n"
         "name: X\n"
         "kind: government\n"
@@ -78,9 +78,9 @@ def test_load_l003_id_mismatch(tmp_path: Path) -> None:
 
 def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
-        "id: city-x\n"
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
         "name: X\n"
         "kind: not-a-kind\n"
         "network_index: 1\n"
@@ -94,7 +94,7 @@ def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
 
 def test_explicit_networks_are_used(tiny_path: Path) -> None:
     network, _ = load_network(tiny_path)
-    org = next(o for o in network.organizations if o.id == "city-hospital")
+    org = next(o for o in network.organizations if o.id == "hospital")
     assert len(org.networks) == 1
     assert org.networks[0].cidr == "10.10.10.0/24"
 
@@ -107,13 +107,13 @@ def test_explicit_bind_ip_preserved(tiny_path: Path) -> None:
 
 def test_injected_org_id(tiny_path: Path) -> None:
     svc = next(s for s in load_network(tiny_path)[0].services if s.id == "hosp-web")
-    assert svc.org_id == "city-hospital"
+    assert svc.org_id == "hospital"
 
 
 def test_load_l001_bad_yaml_in_org(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
         "not: valid: yaml: [\n", encoding="utf-8"
     )
     network, issues = load_network(tmp_path)
@@ -122,8 +122,8 @@ def test_load_l001_bad_yaml_in_org(tmp_path: Path) -> None:
 
 def test_load_l001_root_not_mapping(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
         "- just\n- a\n- list\n", encoding="utf-8"
     )
     network, issues = load_network(tmp_path)
@@ -132,9 +132,9 @@ def test_load_l001_root_not_mapping(tmp_path: Path) -> None:
 
 def test_load_l002_service_schema_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
-        "id: city-x\n"
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
         "name: X\n"
         "kind: government\n"
         "network_index: 1\n"
@@ -153,9 +153,9 @@ def test_load_l002_service_schema_error(tmp_path: Path) -> None:
 
 def test_load_l002_link_schema_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
-        "id: city-x\n"
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
         "name: X\n"
         "kind: government\n"
         "network_index: 1\n"
@@ -166,7 +166,7 @@ def test_load_l002_link_schema_error(tmp_path: Path) -> None:
         "    kind: web\n"
         "    exposure: public\n"
         "    host: svc.example\n"
-        "    network_id: city-x-dmz\n"
+        "    network_id: x-dmz\n"
         "    bind_ip: 10.1.99.10\n"
         "links:\n"
         "  - from_service: svc\n"
@@ -189,7 +189,7 @@ def test_service_assets_discovered(tiny_path: Path) -> None:
     loader.load()
     assets = {a.svc_id: a for a in loader.service_assets}
     assert "hosp-web" in assets
-    assert assets["hosp-web"].org_id == "city-hospital"
+    assert assets["hosp-web"].org_id == "hospital"
     assert (assets["hosp-web"].path / "nginx.conf").exists()
 
 
@@ -207,9 +207,9 @@ def test_orphan_service_asset_emits_warning(broken_path: Path) -> None:
 def test_load_final_assembly_validation_error(tmp_path: Path) -> None:
     """Bad version in YAML should fail final CityNetwork validation."""
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city-x").mkdir()
-    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
-        "id: city-x\nname: X\nkind: government\nnetwork_index: 1\nnetworks: []\nservices: []\n",
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\nname: X\nkind: government\nnetwork_index: 1\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     # Direct CityNetwork construction with bad version should raise.

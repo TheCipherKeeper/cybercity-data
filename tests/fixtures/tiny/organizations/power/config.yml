@@ -1,0 +1,42 @@
+id: power
+name: "City Power & Light"
+kind: infra-utilities
+network_index: 20
+
+description: |
+  Test fixture: 1 org with an OT network, 1 service and 1 decoy.
+
+networks:
+  - id: power-ot
+    kind: ot
+    cidr: 10.20.0.0/24
+
+services:
+  - id: power-ot
+    name: "SCADA gateway"
+    kind: ot
+    exposure: ot
+    host: scada.power.ot
+    network_id: power-ot
+    bind_ip: 10.20.0.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Siemens
+      product: SIMATIC
+      version: "16.0"
+    ports: [tcp/102]
+
+  - id: decoy-printer-01
+    name: "Decoy printer"
+    kind: iot
+    exposure: ot
+    host: decoy-printer-01.power.ot
+    network_id: power-ot
+    bind_ip: 10.20.0.11
+    ports: [tcp/9100, tcp/80]
+    decoy:
+      kind: printer
+      fingerprint: realistic
+      os_hint: linux-embedded
+      note: "mock IoT endpoint"

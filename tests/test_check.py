@@ -142,7 +142,7 @@ def test_ip_in_network(tiny_network: CityNetwork) -> None:
         tiny_network,
         services=[
             tiny_network.services[0].model_copy(
-                update={"network_id": "city-hospital-dmz", "bind_ip": "10.99.0.5"}
+                update={"network_id": "hospital-dmz", "bind_ip": "10.99.0.5"}
             ),
         ],
     )
@@ -156,7 +156,7 @@ def test_ip_in_network_invalid_ip(tiny_network: CityNetwork) -> None:
         tiny_network,
         services=[
             svc.model_copy(
-                update={"network_id": "city-hospital-dmz", "bind_ip": "999.999.999.999"}
+                update={"network_id": "hospital-dmz", "bind_ip": "999.999.999.999"}
             )
         ],
     )
@@ -317,7 +317,7 @@ def test_city_ip_scheme() -> None:
         ]
     )
     report = check(network)
-    assert any(i.code == "city-ip-scheme" for i in report.errors)
+    assert any(i.code == "ip-scheme" for i in report.errors)
 
 
 def test_ip_unique() -> None:

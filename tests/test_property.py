@@ -43,7 +43,7 @@ _LINK_KINDS = [
 
 @st.composite
 def _city_network(draw):
-    org_id = draw(st.sampled_from(["city-a", "city-b", "city-c"]))
+    org_id = draw(st.sampled_from(["x-a", "x-b", "x-c"]))
     network_index = draw(st.integers(min_value=1, max_value=255))
     third_octet = draw(st.integers(min_value=0, max_value=254))
     cidr = f"10.{network_index}.{third_octet}.0/24"

@@ -1,0 +1,123 @@
+id: water
+name: "City Water Works"
+kind: infra-utilities
+network_index: 12
+
+description: |
+  Городское водоканальное хозяйство. SCADA управляет очистными сооружениями,
+  насосными станциями и резервуарами. Критичная OT-инфраструктура.
+
+networks:
+  - id: water-ot
+    kind: ot
+    cidr: 10.12.0.0/24
+  - id: water-dmz
+    kind: dmz
+    cidr: 10.12.1.0/24
+  - id: water-lan
+    kind: lan
+    cidr: 10.12.129.0/24
+  - id: water-mgmt
+    kind: mgmt
+    cidr: 10.12.253.0/24
+
+services:
+  - id: water-scada
+    name: "Water SCADA"
+    kind: ot
+    exposure: ot
+    host: scada.water.ot
+    network_id: water-ot
+    bind_ip: 10.12.0.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Schneider
+      product: clearscada
+      version: "unknown"
+    ports: [tcp/502]
+    criticality: critical
+
+  - id: water-hmi
+    name: "Water HMI"
+    kind: ot
+    exposure: ot
+    host: hmi.water.ot
+    network_id: water-ot
+    bind_ip: 10.12.0.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Schneider
+      product: ecostruxure
+      version: "unknown"
+    ports: [tcp/44818]
+    criticality: high
+
+  - id: water-db
+    name: "Water telemetry DB"
+    kind: db
+    exposure: intranet
+    host: db.water.corp
+    network_id: water-lan
+    bind_ip: 10.12.129.10
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: water-web
+    name: "Water public reports"
+    kind: web
+    exposure: public
+    host: water.city.gov
+    network_id: water-dmz
+    bind_ip: 10.12.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: low
+
+links:
+  - from_service: water-scada
+    to_service: water-db
+    kind: db-write
+    protocol: tcp/5432
+    encryption: tls
+    label: "SCADA writes telemetry"
+
+  - from_service: water-hmi
+    to_service: water-scada
+    kind: api-call
+    protocol: tcp/502
+    encryption: none
+    label: "HMI controls SCADA"
+
+  - from_service: water-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public reports DNS"
+
+  - from_service: water-scada
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "SCADA time sync"
+
+  - from_service: water-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "telemetry DB logs"

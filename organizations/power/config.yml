@@ -1,0 +1,62 @@
+id: power
+name: "City Power & Light"
+kind: infra-utilities
+network_index: 4
+
+description: |
+  Городская энергетическая компания. SCADA-шлюз управляет подстанциями.
+  Имитационный принтер в сети OT используется для наполнения симуляции.
+
+networks:
+  - id: power-ot
+    kind: ot
+    cidr: 10.4.0.0/24
+  - id: power-mgmt
+    kind: mgmt
+    cidr: 10.4.253.0/24
+
+services:
+  - id: power-ot
+    name: "SCADA gateway"
+    kind: ot
+    exposure: ot
+    host: scada.power.ot
+    network_id: power-ot
+    bind_ip: 10.4.0.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Siemens
+      product: SIMATIC
+      version: "16.0"
+    ports: [tcp/102]
+    criticality: critical
+
+  - id: decoy-printer-01
+    name: "Mock OT printer"
+    kind: iot
+    exposure: ot
+    host: decoy-printer-01.power.ot
+    network_id: power-ot
+    bind_ip: 10.4.0.11
+    ports: [tcp/9100, tcp/80]
+    decoy:
+      kind: printer
+      fingerprint: realistic
+      os_hint: linux-embedded
+      note: "mock IoT endpoint for simulation density"
+
+links:
+  - from_service: power-ot
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "OT time sync"
+
+  - from_service: decoy-printer-01
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "mock device DNS resolution"

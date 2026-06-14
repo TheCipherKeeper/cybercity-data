@@ -1,0 +1,150 @@
+id: supermarket
+name: "City Supermarket Chain"
+kind: retail
+network_index: 26
+
+description: |
+  Сеть супермаркетов города. Онлайн-заказы, магазинные POS,
+  складская ERP и программа лояльности.
+
+networks:
+  - id: supermarket-dmz
+    kind: dmz
+    cidr: 10.26.1.0/24
+  - id: supermarket-lan
+    kind: lan
+    cidr: 10.26.129.0/24
+  - id: supermarket-mgmt
+    kind: mgmt
+    cidr: 10.26.253.0/24
+
+services:
+  - id: market-web
+    name: "Supermarket website"
+    kind: web
+    exposure: public
+    host: portal.supermarket.retail
+    network_id: supermarket-dmz
+    bind_ip: 10.26.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: market-pos
+    name: "Store POS"
+    kind: pos
+    exposure: intranet
+    host: pos.supermarket.retail
+    network_id: supermarket-lan
+    bind_ip: 10.26.129.10
+    auth: sso
+    data_classification: pci
+    software:
+      vendor: Custom
+      product: supermarket-pos
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: market-erp
+    name: "Supermarket ERP"
+    kind: erp
+    exposure: intranet
+    host: erp.supermarket.retail
+    network_id: supermarket-lan
+    bind_ip: 10.26.129.11
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: SAP
+      product: erp
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: market-db
+    name: "Supermarket sales DB"
+    kind: db
+    exposure: intranet
+    host: db.supermarket.retail
+    network_id: supermarket-lan
+    bind_ip: 10.26.129.12
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: market-backup
+    name: "Supermarket backup"
+    kind: backup
+    exposure: intranet
+    host: backup.supermarket.retail
+    network_id: supermarket-lan
+    bind_ip: 10.26.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: market-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: market-pos
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "POS DNS resolution"
+
+  - from_service: market-pos
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: market-erp
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "ERP DNS resolution"
+
+  - from_service: market-erp
+    to_service: market-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "inventory and sales"
+
+  - from_service: market-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: market-backup
+    to_service: market-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "sales DB backup"

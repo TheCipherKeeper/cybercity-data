@@ -1,0 +1,143 @@
+id: port
+name: "City Harbor Authority"
+kind: infra-utilities
+network_index: 21
+
+description: |
+  Городская портовая администрация. Управляет грузами, судами,
+  таможенными данными и портовой инфраструктурой.
+
+networks:
+  - id: port-dmz
+    kind: dmz
+    cidr: 10.21.1.0/24
+  - id: port-lan
+    kind: lan
+    cidr: 10.21.129.0/24
+  - id: port-mgmt
+    kind: mgmt
+    cidr: 10.21.253.0/24
+
+services:
+  - id: port-web
+    name: "Port portal"
+    kind: web
+    exposure: public
+    host: portal.port.corp
+    network_id: port-dmz
+    bind_ip: 10.21.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: port-cargo
+    name: "Cargo management API"
+    kind: api
+    exposure: intranet
+    host: cargo.port.corp
+    network_id: port-lan
+    bind_ip: 10.21.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: cargo-api
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: port-cctv
+    name: "Port CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.port.corp
+    network_id: port-lan
+    bind_ip: 10.21.129.11
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: ivms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: port-db
+    name: "Port cargo DB"
+    kind: db
+    exposure: intranet
+    host: db.port.corp
+    network_id: port-lan
+    bind_ip: 10.21.129.12
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: port-backup
+    name: "Port backup"
+    kind: backup
+    exposure: intranet
+    host: backup.port.corp
+    network_id: port-lan
+    bind_ip: 10.21.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: port-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: port-cargo
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "cargo API DNS resolution"
+
+  - from_service: port-cargo
+    to_service: port-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "cargo registry"
+
+  - from_service: port-cctv
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CCTV DNS resolution"
+
+  - from_service: port-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: port-backup
+    to_service: port-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "cargo DB backup"

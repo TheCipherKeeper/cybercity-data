@@ -1,0 +1,217 @@
+id: isp
+name: "City ISP"
+kind: media-telecom
+network_index: 7
+
+description: |
+  Городской интернет-провайдер и оператор связи. Предоставляет публичный DNS,
+  NTP и биллинг абонентов. Размещает honeypot в сегменте internet для сбора
+  разведданных об угрозах.
+
+networks:
+  - id: isp-internet
+    kind: internet
+    cidr: 10.7.0.0/24
+  - id: isp-dmz
+    kind: dmz
+    cidr: 10.7.1.0/24
+  - id: isp-lan
+    kind: lan
+    cidr: 10.7.129.0/24
+  - id: isp-mgmt
+    kind: mgmt
+    cidr: 10.7.253.0/24
+
+services:
+  - id: isp-dns
+    name: "City public DNS"
+    kind: dns
+    exposure: public
+    host: dns.isp.net
+    network_id: isp-internet
+    bind_ip: 10.7.0.10
+    auth: none
+    data_classification: public
+    software:
+      vendor: ISC
+      product: BIND
+      version: "9.18"
+    ports: [tcp/53, udp/53]
+    criticality: high
+
+  - id: isp-ntp
+    name: "City public NTP"
+    kind: ntp
+    exposure: public
+    host: ntp.isp.net
+    network_id: isp-internet
+    bind_ip: 10.7.0.11
+    auth: none
+    data_classification: public
+    software:
+      vendor: NTPProject
+      product: ntpd
+      version: "4.2.8"
+    ports: [udp/123]
+    criticality: medium
+
+  - id: isp-honeypot
+    name: "ISP threat intel honeypot"
+    kind: web
+    exposure: public
+    host: honeypot.isp.net
+    network_id: isp-internet
+    bind_ip: 10.7.0.20
+    auth: none
+    data_classification: public
+    ports: [tcp/80, tcp/443]
+    criticality: low
+    decoy:
+      kind: http
+      fingerprint: known-cve
+      os_hint: linux
+      note: "public-facing honeypot for threat intelligence"
+
+  - id: isp-web
+    name: "ISP customer portal"
+    kind: web
+    exposure: public
+    host: portal.isp.net
+    network_id: isp-dmz
+    bind_ip: 10.7.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: isp-billing
+    name: "ISP billing system"
+    kind: billing
+    exposure: intranet
+    host: billing.isp.net
+    network_id: isp-lan
+    bind_ip: 10.7.129.10
+    auth: mfa
+    data_classification: pci
+    software:
+      vendor: internal
+      product: billing
+      version: "2.0.0"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: isp-radius
+    name: "ISP RADIUS AAA"
+    kind: identity
+    exposure: intranet
+    host: radius.isp.net
+    network_id: isp-lan
+    bind_ip: 10.7.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: FreeRADIUS
+      product: freeradius
+      version: "3.2.0"
+    ports: [tcp/1812, udp/1812]
+    criticality: critical
+
+  - id: isp-db
+    name: "ISP subscriber DB"
+    kind: db
+    exposure: intranet
+    host: db.isp.net
+    network_id: isp-lan
+    bind_ip: 10.7.129.13
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "16.0"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: isp-monitor
+    name: "ISP network monitoring"
+    kind: rmm
+    exposure: intranet
+    host: monitor.isp.net
+    network_id: isp-lan
+    bind_ip: 10.7.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Zabbix
+      product: zabbix
+      version: "6.4"
+    ports: [tcp/10050]
+    criticality: high
+
+links:
+  - from_service: isp-web
+    to_service: isp-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal uses public DNS"
+
+  - from_service: isp-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal fallback DNS"
+
+  - from_service: isp-billing
+    to_service: isp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "billing reads subscriber DB"
+
+  - from_service: isp-billing
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "recurring payment authorisation"
+
+  - from_service: isp-billing
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "billing DNS resolution"
+
+  - from_service: isp-radius
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "RADIUS DNS resolution"
+
+  - from_service: isp-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "subscriber DB audit logs"
+
+  - from_service: isp-monitor
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "monitoring logs"
+
+  - from_service: isp-honeypot
+    to_service: isp-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "honeypot DNS resolution"

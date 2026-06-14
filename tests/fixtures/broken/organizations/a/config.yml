@@ -1,0 +1,18 @@
+id: a
+name: "City A"
+kind: finance
+network_index: 1
+
+networks:
+  - id: a-dmz
+    kind: dmz
+    cidr: 10.1.1.0/24
+
+services:
+  - id: web
+    name: "A web"
+    kind: web
+    exposure: public
+    host: a.example
+    network_id: a-dmz
+    bind_ip: 10.1.1.10

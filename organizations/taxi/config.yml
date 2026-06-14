@@ -1,0 +1,169 @@
+id: taxi
+name: "City Taxi & Rideshare"
+kind: retail
+network_index: 27
+
+description: |
+  Городское такси и служба совместных поездок. Мобильное приложение,
+  диспетчеризация, GPS-трекинг и биллинг поездок.
+
+networks:
+  - id: taxi-dmz
+    kind: dmz
+    cidr: 10.27.1.0/24
+  - id: taxi-lan
+    kind: lan
+    cidr: 10.27.129.0/24
+  - id: taxi-mgmt
+    kind: mgmt
+    cidr: 10.27.253.0/24
+
+services:
+  - id: taxi-app
+    name: "Taxi app backend"
+    kind: api
+    exposure: public
+    host: api.taxi.retail
+    network_id: taxi-dmz
+    bind_ip: 10.27.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: taxi-dispatch
+    name: "Taxi dispatch"
+    kind: web
+    exposure: intranet
+    host: dispatch.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: Custom
+      product: taxi-dispatch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: taxi-gps
+    name: "Taxi GPS tracker"
+    kind: iot
+    exposure: intranet
+    host: gps.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.11
+    auth: certificate
+    data_classification: internal
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: taxi-db
+    name: "Taxi rides DB"
+    kind: db
+    exposure: intranet
+    host: db.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.12
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: taxi-billing
+    name: "Taxi billing"
+    kind: api
+    exposure: intranet
+    host: billing.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.13
+    auth: mfa
+    data_classification: pci
+    software:
+      vendor: Custom
+      product: taxi-billing
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: taxi-backup
+    name: "Taxi backup"
+    kind: backup
+    exposure: intranet
+    host: backup.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.14
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: taxi-app
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "app backend DNS resolution"
+
+  - from_service: taxi-dispatch
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "dispatch DNS resolution"
+
+  - from_service: taxi-dispatch
+    to_service: taxi-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "rides and drivers"
+
+  - from_service: taxi-gps
+    to_service: taxi-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "vehicle positions"
+
+  - from_service: taxi-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: taxi-billing
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: taxi-billing
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "billing DNS resolution"
+
+  - from_service: taxi-backup
+    to_service: taxi-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "rides DB backup"

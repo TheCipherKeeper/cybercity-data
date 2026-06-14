@@ -1,0 +1,144 @@
+id: insurance
+name: "City Insurance Group"
+kind: finance
+network_index: 16
+
+description: |
+  Городская страховая компания. Продаёт полисы, обрабатывает убытки,
+  ведёт реестр договоров и клиентских данных. Дополняет финансовый сектор
+  наряду с банком.
+
+networks:
+  - id: insurance-dmz
+    kind: dmz
+    cidr: 10.16.1.0/24
+  - id: insurance-lan
+    kind: lan
+    cidr: 10.16.129.0/24
+  - id: insurance-mgmt
+    kind: mgmt
+    cidr: 10.16.253.0/24
+
+services:
+  - id: ins-web
+    name: "Insurance portal"
+    kind: web
+    exposure: public
+    host: portal.insurance.corp
+    network_id: insurance-dmz
+    bind_ip: 10.16.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: ins-api
+    name: "Insurance claims API"
+    kind: api
+    exposure: intranet
+    host: api.insurance.corp
+    network_id: insurance-lan
+    bind_ip: 10.16.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: ins-db
+    name: "Insurance policies DB"
+    kind: db
+    exposure: intranet
+    host: db.insurance.corp
+    network_id: insurance-lan
+    bind_ip: 10.16.129.11
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: ins-idp
+    name: "Insurance SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.insurance.corp
+    network_id: insurance-lan
+    bind_ip: 10.16.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: ins-backup
+    name: "Insurance backup"
+    kind: backup
+    exposure: intranet
+    host: backup.insurance.corp
+    network_id: insurance-lan
+    bind_ip: 10.16.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: ins-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: ins-api
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "API DNS resolution"
+
+  - from_service: ins-api
+    to_service: ins-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "policy and claims data"
+
+  - from_service: ins-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: ins-backup
+    to_service: ins-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "policies DB backup"
+
+  - from_service: ins-api
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "API audit logs"

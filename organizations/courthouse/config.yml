@@ -1,0 +1,143 @@
+id: courthouse
+name: "City Courthouse"
+kind: government
+network_index: 18
+
+description: |
+  Городской суд. Ведёт электронное досье дел, календарь заседаний
+  и публичный реестр судебных решений.
+
+networks:
+  - id: courthouse-dmz
+    kind: dmz
+    cidr: 10.18.1.0/24
+  - id: courthouse-lan
+    kind: lan
+    cidr: 10.18.129.0/24
+  - id: courthouse-mgmt
+    kind: mgmt
+    cidr: 10.18.253.0/24
+
+services:
+  - id: court-web
+    name: "Court portal"
+    kind: web
+    exposure: public
+    host: portal.courthouse.gov
+    network_id: courthouse-dmz
+    bind_ip: 10.18.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: court-cms
+    name: "Court case management"
+    kind: web
+    exposure: intranet
+    host: cms.courthouse.gov
+    network_id: courthouse-lan
+    bind_ip: 10.18.129.10
+    auth: sso
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: case-management
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: court-db
+    name: "Court case DB"
+    kind: db
+    exposure: intranet
+    host: db.courthouse.gov
+    network_id: courthouse-lan
+    bind_ip: 10.18.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: court-idp
+    name: "Court SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.courthouse.gov
+    network_id: courthouse-lan
+    bind_ip: 10.18.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: court-backup
+    name: "Court backup"
+    kind: backup
+    exposure: intranet
+    host: backup.courthouse.gov
+    network_id: courthouse-lan
+    bind_ip: 10.18.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: court-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: court-cms
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CMS DNS resolution"
+
+  - from_service: court-cms
+    to_service: court-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "case records"
+
+  - from_service: court-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: court-backup
+    to_service: court-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "case DB backup"
+
+  - from_service: court-cms
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "CMS audit logs"

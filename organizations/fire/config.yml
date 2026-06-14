@@ -1,0 +1,150 @@
+id: fire
+name: "City Fire Department"
+kind: government
+network_index: 14
+
+description: |
+  Городская пожарная служба. Диспетчеризация вызовов, карты инцидентов,
+  CCTV на депо и интеграция с полицейским CAD для совместных операций.
+
+networks:
+  - id: fire-dmz
+    kind: dmz
+    cidr: 10.14.1.0/24
+  - id: fire-lan
+    kind: lan
+    cidr: 10.14.129.0/24
+  - id: fire-mgmt
+    kind: mgmt
+    cidr: 10.14.253.0/24
+
+services:
+  - id: fire-web
+    name: "Fire department portal"
+    kind: web
+    exposure: public
+    host: fire.city.gov
+    network_id: fire-dmz
+    bind_ip: 10.14.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: fire-dispatch
+    name: "Fire dispatch system"
+    kind: tickets
+    exposure: intranet
+    host: dispatch.fire.city.gov
+    network_id: fire-lan
+    bind_ip: 10.14.129.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: internal
+      product: dispatch
+      version: "3.0.0"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: fire-gis
+    name: "Fire GIS"
+    kind: web
+    exposure: intranet
+    host: gis.fire.city.gov
+    network_id: fire-lan
+    bind_ip: 10.14.129.11
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: Esri
+      product: arcgis
+      version: "10.9"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: fire-db
+    name: "Fire incidents DB"
+    kind: db
+    exposure: intranet
+    host: db.fire.city.gov
+    network_id: fire-lan
+    bind_ip: 10.14.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: fire-cctv
+    name: "Fire station CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.fire.city.gov
+    network_id: fire-lan
+    bind_ip: 10.14.129.13
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: dvr
+      version: "5.0"
+    ports: [tcp/554]
+    criticality: medium
+
+links:
+  - from_service: fire-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal DNS"
+
+  - from_service: fire-dispatch
+    to_service: fire-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "dispatch reads incidents"
+
+  - from_service: fire-dispatch
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "dispatch DNS"
+
+  - from_service: fire-gis
+    to_service: fire-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "GIS reads incident locations"
+
+  - from_service: fire-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: fire-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "incidents DB logs"
+
+  - from_service: fire-dispatch
+    to_service: police-cad
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "shared incident data"

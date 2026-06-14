@@ -65,7 +65,7 @@ class NetworkChecker:
                 *self._ip_in_network(network),
                 *self._ip_unique(network),
                 *self._network_overlap(network),
-                *self._city_ip_scheme(network),
+                *self._ip_scheme(network),
                 *self._exposure_network(network),
                 *self._self_loop(network),
                 *self._software(network),
@@ -280,9 +280,9 @@ class NetworkChecker:
         return out
 
     # ─────────────────────────────────────────────────────────────────
-    # city-ip-scheme
+    # ip-scheme
     # ─────────────────────────────────────────────────────────────────
-    def _city_ip_scheme(self, network: CityNetwork) -> list[Issue]:
+    def _ip_scheme(self, network: CityNetwork) -> list[Issue]:
         """Validate that org networks live under 10.<network_index>.x.x."""
         out: list[Issue] = []
         for i, org in enumerate(network.organizations):
@@ -291,7 +291,7 @@ class NetworkChecker:
                 if not net.cidr.startswith(prefix):
                     out.append(
                         Issue(
-                            code="city-ip-scheme",
+                            code="ip-scheme",
                             path=f"organizations[{i}].networks[{j}].cidr",
                             level="error",
                             message=(

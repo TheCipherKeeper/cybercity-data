@@ -1,0 +1,143 @@
+id: clinic
+name: "City Outpatient Clinic"
+kind: healthcare
+network_index: 8
+
+description: |
+  Городская поликлиника. Ведёт электронные медицинские карты, запись к врачам,
+  лабораторные анализы. Работает через городской SSO и сливает логи в City Hall.
+
+networks:
+  - id: clinic-dmz
+    kind: dmz
+    cidr: 10.8.1.0/24
+  - id: clinic-lan
+    kind: lan
+    cidr: 10.8.129.0/24
+  - id: clinic-mgmt
+    kind: mgmt
+    cidr: 10.8.253.0/24
+
+services:
+  - id: clinic-web
+    name: "Clinic patient portal"
+    kind: web
+    exposure: public
+    host: portal.clinic.med
+    network_id: clinic-dmz
+    bind_ip: 10.8.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: clinic-emr
+    name: "Clinic EMR"
+    kind: web
+    exposure: intranet
+    host: emr.clinic.med
+    network_id: clinic-lan
+    bind_ip: 10.8.129.10
+    auth: mfa
+    data_classification: phi
+    software:
+      vendor: Epic
+      product: epic
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: clinic-db
+    name: "Clinic patient records DB"
+    kind: db
+    exposure: intranet
+    host: db.clinic.med
+    network_id: clinic-lan
+    bind_ip: 10.8.129.11
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: clinic-lab
+    name: "Clinic lab integration"
+    kind: api
+    exposure: intranet
+    host: lab.clinic.med
+    network_id: clinic-lan
+    bind_ip: 10.8.129.12
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: internal
+      product: lab-adapter
+      version: "1.0.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: clinic-backup
+    name: "Clinic backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.clinic.med
+    network_id: clinic-lan
+    bind_ip: 10.8.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: veeam
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: clinic-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal DNS resolution"
+
+  - from_service: clinic-emr
+    to_service: clinic-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "EMR reads patient records"
+
+  - from_service: clinic-emr
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "EMR DNS resolution"
+
+  - from_service: clinic-lab
+    to_service: clinic-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "lab reads patient records"
+
+  - from_service: clinic-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "patient DB audit logs"
+
+  - from_service: clinic-backup
+    to_service: clinic-db
+    kind: backup-of
+    protocol: tcp/5432
+    encryption: tls
+    label: "backup patient DB"

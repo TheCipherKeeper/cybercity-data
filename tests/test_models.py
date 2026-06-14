@@ -48,7 +48,7 @@ def test_extra_field_rejected() -> None:
         "version": "2.0.0",
         "organizations": [
             {
-                "id": "city-x",
+                "id": "x",
                 "name": "X",
                 "kind": "government",
                 "network_index": 1,
@@ -72,12 +72,12 @@ def test_service_requires_host_fqdn() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
                 "id": "svc",
-                "org_id": "city-x",
+                "org_id": "x",
                 "name": "S",
                 "kind": "web",
                 "exposure": "public",
@@ -93,12 +93,12 @@ def test_cve_id_pattern() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
                 "id": "svc",
-                "org_id": "city-x",
+                "org_id": "x",
                 "name": "S",
                 "kind": "web",
                 "exposure": "public",
@@ -119,12 +119,12 @@ def test_service_ports_pattern() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
                 "id": "svc",
-                "org_id": "city-x",
+                "org_id": "x",
                 "name": "S",
                 "kind": "web",
                 "exposure": "public",
@@ -141,12 +141,12 @@ def test_service_ports_accepts_valid() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
                 "id": "svc",
-                "org_id": "city-x",
+                "org_id": "x",
                 "name": "S",
                 "kind": "web",
                 "exposure": "public",
@@ -169,12 +169,12 @@ def test_known_weakness_rejected() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
                 "id": "svc",
-                "org_id": "city-x",
+                "org_id": "x",
                 "name": "S",
                 "kind": "web",
                 "exposure": "public",
@@ -192,12 +192,12 @@ def test_attack_chain_rejected() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
-            {"id": "a", "org_id": "city-x", "name": "A", "kind": "web",
+            {"id": "a", "org_id": "x", "name": "A", "kind": "web",
              "exposure": "public", "host": "a.example"},
-            {"id": "b", "org_id": "city-x", "name": "B", "kind": "web",
+            {"id": "b", "org_id": "x", "name": "B", "kind": "web",
              "exposure": "public", "host": "b.example"},
         ],
         "links": [
