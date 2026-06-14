@@ -22,6 +22,7 @@ Design goals for v2.0:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import yaml
 from pydantic import ValidationError
@@ -154,7 +155,7 @@ class NetworkLoader:
 
         org_only = {k: v for k, v in raw.items() if k not in ("services", "links")}
 
-        networks_raw: list[dict] = []
+        networks_raw: list[dict[str, Any]] = []
         for item in org_only.get("networks") or []:
             if isinstance(item, dict):
                 item.setdefault("org_id", org_id)

@@ -13,6 +13,7 @@ Exit codes:
 from __future__ import annotations
 
 import json
+import shutil
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,7 +26,7 @@ from pydantic import ValidationError
 from . import __version__
 from .build import Builder
 from .check import Issue, NetworkChecker
-from .loader import NetworkLoader
+from .loader import NetworkLoader, ServiceAssets
 from .models import CityNetwork
 
 app = typer.Typer(
@@ -55,6 +56,7 @@ class Result:
     rendered: list[Path] | None = None
     render_skipped: str | None = None
     network: CityNetwork | None = None
+    service_assets: list[ServiceAssets] = field(default_factory=list)
 
     @property
     def exit_code(self) -> int:
@@ -77,6 +79,7 @@ class Result:
             out["rendered"] = [str(p) for p in self.rendered]
         if self.render_skipped is not None:
             out["render_skipped"] = self.render_skipped
+        out["service_assets"] = len(self.service_assets)
         return out
 
     def print_human(self) -> None:
@@ -106,16 +109,16 @@ class Result:
 # ─────────────────────────────────────────────────────────────────────
 # Core pipeline
 # ─────────────────────────────────────────────────────────────────────
-def _load(path: Path) -> tuple[CityNetwork, list[Issue]]:
+def _load(path: Path) -> tuple[CityNetwork, list[Issue], list[ServiceAssets]]:
     loader = NetworkLoader(path)
     network = loader.load()
-    return network, list(loader.issues)
+    return network, list(loader.issues), list(loader.service_assets)
 
 
 def _run_check(path: Path, strict: bool) -> Result:
     result = Result(path=path, ok=False, strict=strict)
     try:
-        network, loader_issues = _load(path)
+        network, loader_issues, loader_assets = _load(path)
     except FileNotFoundError as exc:
         result.error = str(exc)
         return result
@@ -142,10 +145,11 @@ def _run_check(path: Path, strict: bool) -> Result:
         links=len(network.links),
     )
     result.network = network
+    result.service_assets = loader_assets
     return result
 
 
-def _run_build(path: Path, out: Path, strict: bool) -> Result:
+def _run_build(path: Path, out: Path, strict: bool, clean: bool) -> Result:
     result = _run_check(path, strict=strict)
     if not result.ok or result.error is not None:
         if result.error is None:
@@ -163,7 +167,13 @@ def _run_build(path: Path, out: Path, strict: bool) -> Result:
         if network is None:  # pragma: no cover - defensive guard
             raise RuntimeError("network missing after successful check")
         target = (path / out).resolve()
-        rendered = Builder(network).render(target)
+        if clean and target.exists():
+            for entry in target.iterdir():
+                if entry.is_dir():
+                    shutil.rmtree(entry)
+                else:
+                    entry.unlink()
+        rendered = Builder(network, service_assets=result.service_assets).render(target)
         result.rendered = rendered
     except Exception:
         result.ok = False
@@ -246,9 +256,13 @@ def build_cmd(
             "--strict", help="Treat warnings as errors (useful near v1.0)."
         ),
     ] = False,
+    clean: Annotated[
+        bool,
+        typer.Option("--clean", help="Remove existing output directory before build."),
+    ] = False,
 ) -> None:
     """Validate and build artifacts under <PATH>/<out>/ (default: build/)."""
-    result = _run_build(path, out, strict=strict)
+    result = _run_build(path, out, strict=strict, clean=clean)
     _emit(result, json_out)
     raise typer.Exit(code=result.exit_code)
 
@@ -271,6 +285,10 @@ def init_cmd(
             help="Repository root containing organizations/ (default: .).",
         ),
     ] = Path("."),
+    empty: Annotated[
+        bool,
+        typer.Option("--empty", help="Create a minimal config with empty lists."),
+    ] = False,
 ) -> None:
     """Scaffold a new organization under organizations/<org_id>/."""
     orgs_root = path / "organizations"
@@ -286,19 +304,46 @@ def init_cmd(
     target_dir.mkdir()
     config_path = target_dir / "config.yml"
     name = " ".join(part.capitalize() for part in org_id.split("-"))
-    content = (
-        f"id: {org_id}\n"
-        f'name: "{name}"\n'
-        f"kind: {kind}\n"
-        f"network_index: {network_index}\n"
-        "\n"
-        "description: |\n"
-        "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
-        "\n"
-        "services: []\n"
-        "links: []\n"
-        "networks: []\n"
-    )
+    if empty:
+        content = (
+            f"id: {org_id}\n"
+            f'name: "{name}"\n'
+            f"kind: {kind}\n"
+            f"network_index: {network_index}\n"
+            "\n"
+            "description: |\n"
+            "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
+            "\n"
+            "networks: []\n"
+            "services: []\n"
+            "links: []\n"
+        )
+    else:
+        content = (
+            f"id: {org_id}\n"
+            f'name: "{name}"\n'
+            f"kind: {kind}\n"
+            f"network_index: {network_index}\n"
+            "\n"
+            "description: |\n"
+            "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
+            "\n"
+            "networks:\n"
+            f"  - id: {org_id}-dmz\n"
+            "    kind: dmz\n"
+            f"    cidr: 10.{network_index}.0.0/24\n"
+            "\n"
+            "services:\n"
+            f"  - id: {org_id}-web\n"
+            '    name: "Example web service"\n'
+            "    kind: web\n"
+            "    exposure: public\n"
+            f"    host: www.{org_id}.corp\n"
+            f"    network_id: {org_id}-dmz\n"
+            f"    bind_ip: 10.{network_index}.0.10\n"
+            "\n"
+            "links: []\n"
+        )
     config_path.write_text(content, encoding="utf-8")
     typer.echo(f"Created {config_path}")
 

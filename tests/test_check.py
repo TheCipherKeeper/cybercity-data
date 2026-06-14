@@ -300,3 +300,166 @@ def test_software_cve_format(tiny_network: CityNetwork) -> None:
     )
     report = check(bad)
     assert any(i.code == "software" for i in report.errors)
+
+
+def test_city_ip_scheme() -> None:
+    network = _minimal_network(
+        organizations=[
+            Organization(
+                id="a",
+                name="A",
+                kind="finance",
+                network_index=1,
+                networks=[
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.99.1.0/24")
+                ],
+            )
+        ]
+    )
+    report = check(network)
+    assert any(i.code == "city-ip-scheme" for i in report.errors)
+
+
+def test_ip_unique() -> None:
+    network = _minimal_network(
+        services=[
+            Service(
+                id="s1",
+                org_id="a",
+                name="S1",
+                kind="web",
+                exposure="public",
+                host="s1.a.corp",
+                network_id="a-dmz",
+                bind_ip="10.1.1.10",
+            ),
+            Service(
+                id="s2",
+                org_id="a",
+                name="S2",
+                kind="api",
+                exposure="public",
+                host="s2.a.corp",
+                network_id="a-dmz",
+                bind_ip="10.1.1.10",
+            ),
+        ]
+    )
+    report = check(network)
+    assert any(i.code == "ip-unique" for i in report.errors)
+
+
+def test_ip_unique_different_networks_ok() -> None:
+    network = _minimal_network(
+        organizations=[
+            Organization(
+                id="a",
+                name="A",
+                kind="finance",
+                network_index=1,
+                networks=[
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.1.1.0/24"),
+                    Network(id="a-lan", org_id="a", kind="lan", cidr="10.1.2.0/24"),
+                ],
+            )
+        ],
+        services=[
+            Service(
+                id="s1",
+                org_id="a",
+                name="S1",
+                kind="web",
+                exposure="public",
+                host="s1.a.corp",
+                network_id="a-dmz",
+                bind_ip="10.1.1.10",
+            ),
+            Service(
+                id="s2",
+                org_id="a",
+                name="S2",
+                kind="api",
+                exposure="intranet",
+                host="s2.a.corp",
+                network_id="a-lan",
+                bind_ip="10.1.1.10",
+            ),
+        ],
+    )
+    report = check(network)
+    assert not any(i.code == "ip-unique" for i in report.errors)
+
+
+def test_decoy_criticality() -> None:
+    network = _minimal_network(
+        services=[
+            Service(
+                id="s1",
+                org_id="a",
+                name="S1",
+                kind="web",
+                exposure="public",
+                host="s1.a.corp",
+                network_id="a-dmz",
+                bind_ip="10.1.1.10",
+            ),
+            Service(
+                id="decoy",
+                org_id="a",
+                name="Decoy",
+                kind="iot",
+                exposure="intranet",
+                host="decoy.a.corp",
+                network_id="a-lan",
+                bind_ip="10.1.2.10",
+                criticality="critical",
+                decoy={"kind": "printer", "fingerprint": "realistic"},
+            ),
+        ]
+    )
+    report = check(network)
+    assert any(
+        i.code == "decoy-criticality" and "cannot have criticality=critical" in i.message
+        for i in report.errors
+    )
+
+
+def test_decoy_write_real() -> None:
+    network = _minimal_network(
+        services=[
+            Service(
+                id="s1",
+                org_id="a",
+                name="S1",
+                kind="db",
+                exposure="intranet",
+                host="db.a.corp",
+                network_id="a-lan",
+                bind_ip="10.1.2.10",
+            ),
+            Service(
+                id="decoy",
+                org_id="a",
+                name="Decoy",
+                kind="iot",
+                exposure="intranet",
+                host="decoy.a.corp",
+                network_id="a-lan",
+                bind_ip="10.1.2.11",
+                decoy={"kind": "printer", "fingerprint": "realistic"},
+            ),
+        ],
+        links=[
+            {
+                "from_service": "decoy",
+                "to_service": "s1",
+                "kind": "db-write",
+                "protocol": "tcp/1521",
+            }
+        ],
+    )
+    report = check(network)
+    assert any(
+        i.code == "decoy-write-real" and "decoy service" in i.message
+        for i in report.errors
+    )

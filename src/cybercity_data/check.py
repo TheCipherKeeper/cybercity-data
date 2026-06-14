@@ -63,11 +63,13 @@ class NetworkChecker:
                 *self._refs(network),
                 *self._network_belongs(network),
                 *self._ip_in_network(network),
+                *self._ip_unique(network),
                 *self._network_overlap(network),
                 *self._city_ip_scheme(network),
                 *self._exposure_network(network),
                 *self._self_loop(network),
                 *self._software(network),
+                *self._decoy(network),
             ]
         )
 
@@ -251,6 +253,33 @@ class NetworkChecker:
         return out
 
     # ─────────────────────────────────────────────────────────────────
+    # ip-unique
+    # ─────────────────────────────────────────────────────────────────
+    def _ip_unique(self, network: CityNetwork) -> list[Issue]:
+        out: list[Issue] = []
+        seen: dict[str, dict[str, str]] = {}
+        for i, svc in enumerate(network.services):
+            if svc.bind_ip is None or svc.network_id is None:
+                continue
+            net_ips = seen.setdefault(svc.network_id, {})
+            if svc.bind_ip in net_ips:
+                other_id = net_ips[svc.bind_ip]
+                out.append(
+                    Issue(
+                        code="ip-unique",
+                        path=f"services[{i}].bind_ip",
+                        level="error",
+                        message=(
+                            f"service {svc.id!r} bind_ip {svc.bind_ip!r} is already "
+                            f"used by service {other_id!r} in network {svc.network_id!r}"
+                        ),
+                    )
+                )
+            else:
+                net_ips[svc.bind_ip] = svc.id
+        return out
+
+    # ─────────────────────────────────────────────────────────────────
     # city-ip-scheme
     # ─────────────────────────────────────────────────────────────────
     def _city_ip_scheme(self, network: CityNetwork) -> list[Issue]:
@@ -369,6 +398,47 @@ class NetworkChecker:
                         message=(
                             f"service {svc.id!r} cve_id {svc.software.cve_id!r} "
                             f"does not match CVE-YYYY-NNNNN"
+                        ),
+                    )
+                )
+        return out
+
+    # ─────────────────────────────────────────────────────────────────
+    # decoy
+    # ─────────────────────────────────────────────────────────────────
+    def _decoy(self, network: CityNetwork) -> list[Issue]:
+        out: list[Issue] = []
+        is_decoy = {s.id: s.decoy is not None for s in network.services}
+        for i, svc in enumerate(network.services):
+            if svc.decoy is None:
+                continue
+            if svc.criticality == "critical":
+                out.append(
+                    Issue(
+                        code="decoy-criticality",
+                        path=f"services[{i}].criticality",
+                        level="error",
+                        message=(
+                            f"decoy service {svc.id!r} cannot have criticality=critical"
+                        ),
+                    )
+                )
+
+        write_kinds = {"db-write", "backup-of"}
+        for j, link in enumerate(network.links):
+            if not is_decoy.get(link.from_service, False):
+                continue
+            if link.kind not in write_kinds:
+                continue
+            if not is_decoy.get(link.to_service, True):
+                out.append(
+                    Issue(
+                        code="decoy-write-real",
+                        path=f"links[{j}]",
+                        level="error",
+                        message=(
+                            f"decoy service {link.from_service!r} cannot {link.kind!r} "
+                            f"real service {link.to_service!r}"
                         ),
                     )
                 )

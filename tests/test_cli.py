@@ -116,11 +116,30 @@ def test_build_creates_artifacts(tiny_path: Path, tmp_path: Path) -> None:
     out = tmp_path / "out"
     result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out)])
     assert result.exit_code == 0, result.output
+    for name in (
+        "network.json",
+        "network.md",
+        "schema.json",
+        "topology.json",
+        "network.html",
+        "attack-surface.json",
+        "inventory.md",
+        "changes.json",
+    ):
+        assert (out / name).exists(), f"missing artifact: {name}"
+    assert (out / "engine.zip").exists(), "missing engine.zip"
+
+
+def test_build_clean_removes_old_files(tiny_path: Path, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "stale.txt").write_text("old", encoding="utf-8")
+    result = runner.invoke(
+        app, ["build", str(tiny_path), "--out", str(out), "--clean"]
+    )
+    assert result.exit_code == 0, result.output
+    assert not (out / "stale.txt").exists()
     assert (out / "network.json").exists()
-    assert (out / "network.md").exists()
-    assert (out / "schema.json").exists()
-    assert (out / "topology.json").exists()
-    assert not (out / "attack-surface.json").exists()
 
 
 def test_build_skipped_on_errors(tmp_path: Path) -> None:
@@ -131,7 +150,7 @@ def test_build_skipped_on_errors(tmp_path: Path) -> None:
     assert not (out / "network.json").exists()
 
 
-def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
+def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     result = runner.invoke(
         app,
@@ -153,7 +172,32 @@ def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
     assert "id: city-hospital" in text
     assert "kind: healthcare" in text
     assert "network_index: 10" in text
+    assert "city-hospital-dmz" in text
+    assert "city-hospital-web" in text
+
+
+def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "city-hospital",
+            "--kind",
+            "healthcare",
+            "--network-index",
+            "10",
+            "--path",
+            str(tmp_path),
+            "--empty",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    cfg = tmp_path / "organizations" / "city-hospital" / "config.yml"
+    text = cfg.read_text(encoding="utf-8")
     assert "networks: []" in text
+    assert "services: []" in text
+    assert "links: []" in text
 
 
 def test_check_json_on_missing_dir(tmp_path: Path) -> None:
@@ -240,6 +284,30 @@ def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
     assert "simulated internal failure" in result.output
+
+
+def test_check_exits_1_on_yaml_error(tmp_path: Path, monkeypatch) -> None:
+    import yaml
+
+    def boom(*_args, **_kwargs):
+        raise yaml.YAMLError("simulated yaml failure")
+
+    monkeypatch.setattr("cybercity_data.cli._load", boom)
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "YAML error" in result.output
+
+
+def test_check_exits_1_on_validation_error(tmp_path: Path, monkeypatch) -> None:
+    from pydantic import ValidationError
+
+    def boom(*_args, **_kwargs):
+        raise ValidationError.from_exception_data("CityNetwork", [])
+
+    monkeypatch.setattr("cybercity_data.cli._load", boom)
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "schema errors" in result.output
 
 
 def test_build_exits_1_on_internal_render_error(
