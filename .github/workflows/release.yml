@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build and release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.x"
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Lint and typecheck
+        run: |
+          uv run ruff check
+          uv run mypy --strict src/cybercity_data
+
+      - name: Run tests
+        run: uv run pytest -q --cov=src/cybercity_data --cov-report=term --cov-fail-under=95
+
+      - name: Validate data
+        run: uv run cybercity-data check . --strict
+
+      - name: Build artifacts
+        run: uv run cybercity-data build . --clean --strict
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/engine.zip
+            build/network.json
+            build/topology.json
+            build/attack-surface.json
+          generate_release_notes: true

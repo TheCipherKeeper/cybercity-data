@@ -10,6 +10,7 @@ default:
 
 stages:
   - lint
+  - typecheck
   - test
   - validate
   - build
@@ -28,8 +29,19 @@ lint:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
     - if: '$CI_PIPELINE_SOURCE == "push"'
 
+typecheck:
+  stage: typecheck
+  script:
+    - uv sync --frozen
+    - uv run mypy --strict src/cybercity_data
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+
 test:
   stage: test
+  needs: [lint, typecheck]
   script:
     - uv sync --frozen
     - uv run pytest -q --cov=src/cybercity_data --cov-report=term --cov-fail-under=95
@@ -46,6 +58,7 @@ test:
 
 check:
   stage: validate
+  needs: [lint, typecheck]
   script:
     - uv sync --frozen
     - uv run cybercity-data check .
@@ -56,16 +69,21 @@ check:
 
 build:
   stage: build
+  needs: [test, check]
   script:
     - uv sync --frozen
-    - uv run cybercity-data build .
+    - uv run cybercity-data build . --clean
   artifacts:
     paths:
       - build/network.json
       - build/network.md
       - build/schema.json
       - build/topology.json
+      - build/network.html
       - build/attack-surface.json
+      - build/inventory.md
+      - build/changes.json
+      - build/engine.zip
     expire_in: 1 week
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
