@@ -6,12 +6,19 @@ segment: ot
 description: |
   Test fixture: 1 org in ot segment with 1 service and 1 decoy.
 
+networks:
+  - id: city-power-ot
+    kind: ot
+    cidr: 10.20.0.0/24
+
 services:
   - id: power-ot
     name: "SCADA gateway"
     kind: ot
     exposure: ot
     host: scada.city-power.ot
+    network_id: city-power-ot
+    bind_ip: 10.20.0.10
     auth: certificate
     data_classification: restricted
     software:
@@ -25,6 +32,8 @@ services:
     kind: iot
     exposure: ot
     host: decoy-printer-01.city-power.ot
+    network_id: city-power-ot
+    bind_ip: 10.20.0.11
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer

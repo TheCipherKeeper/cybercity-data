@@ -1,8 +1,8 @@
 """Pydantic models for the cybercity network model.
 
-Schema goals for v1.0:
-  * Networks are first-class: every service lives on a concrete network with an IP.
-  * org_id is injected by the loader, not repeated in each service.
+Schema goals for v2.0 (explicit-only):
+  * Everything is declared: networks, IP addresses, and service placement.
+  * org_id is still injected by the loader to avoid repeating it in every service.
   * Decoys are services with a `decoy` block; their honeypot role is separate from service kind.
   * `extra="forbid"` keeps typos loud.
 """
@@ -28,15 +28,19 @@ __all__ = [
     "DecoyFingerprint",
     "WeaknessKind",
     "Regulation",
-    "Allocation",
-    "Meta",
     "Network",
     "ThirdParty",
     "Organization",
     "Service",
     "Link",
     "CityNetwork",
+    "SCHEMA_VERSION",
 ]
+
+# ─────────────────────────────────────────────────────────────────────
+# Schema version
+# ─────────────────────────────────────────────────────────────────────
+SCHEMA_VERSION = "2.0.0"
 
 # ─────────────────────────────────────────────────────────────────────
 # Enums (Literal — pydantic emits a clear error on a bad value)
@@ -166,24 +170,7 @@ class _StrictModel(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────
-# City-wide meta and allocation
-# ─────────────────────────────────────────────────────────────────────
-class Allocation(_StrictModel):
-    """Base CIDR ranges from which the loader auto-allocates per-org networks."""
-
-    corp: str = Field(pattern=_CIDR)
-    ot: str = Field(pattern=_CIDR)
-    mgmt: str = Field(pattern=_CIDR)
-    internet: str = Field(pattern=_CIDR)
-
-
-class Meta(_StrictModel):
-    city: str
-    allocation: Allocation
-
-
-# ─────────────────────────────────────────────────────────────────────
-# Network (first-class in v0.3)
+# Network (first-class in v2.0)
 # ─────────────────────────────────────────────────────────────────────
 class Network(_StrictModel):
     """A layer-3 network that belongs to exactly one organization."""
@@ -241,7 +228,7 @@ class Organization(_StrictModel):
     regulated: list[Regulation] = []
     headcount_estimate: int | None = Field(default=None, ge=0)
 
-    # Explicit networks. Loader auto-allocates defaults when empty.
+    # Networks must be declared explicitly in v2.0.
     networks: list[Network] = []
 
 
@@ -256,7 +243,7 @@ class Service(_StrictModel):
     exposure: Exposure
     host: str = Field(pattern=_FQDN)
 
-    # Concrete network placement. Both are auto-allocated if omitted.
+    # Concrete network placement must be declared explicitly in v2.0.
     network_id: str | None = Field(default=None, pattern=_KEBAB)
     bind_ip: str | None = Field(default=None, pattern=_IPV4)
 
@@ -288,10 +275,9 @@ class Link(_StrictModel):
 # Root model
 # ─────────────────────────────────────────────────────────────────────
 class CityNetwork(_StrictModel):
-    """Assembled city: organizations, networks, services, links."""
+    """Assembled city: organizations, services, links."""
 
-    version: str = Field(pattern=_SEMVER)
-    meta: Meta
+    version: str = Field(default=SCHEMA_VERSION, pattern=_SEMVER)
     organizations: list[Organization] = []
     services: list[Service] = []
     links: list[Link] = []

@@ -24,12 +24,25 @@ notes:
   - "file-share содержит бюджетные документы, удобная цель для lateral movement"
   - "mail - основной канал фишинговых рассылок в городских сценариях"
 
+networks:
+  - id: city-hall-dmz
+    kind: dmz
+    cidr: 10.10.1.0/24
+  - id: city-hall-lan
+    kind: lan
+    cidr: 10.10.129.0/24
+  - id: city-hall-mgmt
+    kind: mgmt
+    cidr: 10.30.1.0/24
+
 services:
   - id: hall-web
     name: "City Hall portal"
     kind: web
     exposure: public
     host: portal.city-hall.corp
+    network_id: city-hall-dmz
+    bind_ip: 10.10.1.10
     auth: sso
     data_classification: public
     software:
@@ -44,6 +57,8 @@ services:
     kind: mail
     exposure: intranet
     host: mail.city-hall.corp
+    network_id: city-hall-lan
+    bind_ip: 10.10.129.10
     auth: sso
     data_classification: internal
     software:
@@ -58,6 +73,8 @@ services:
     kind: file-share
     exposure: intranet
     host: fs.city-hall.corp
+    network_id: city-hall-lan
+    bind_ip: 10.10.129.11
     auth: sso
     data_classification: confidential
     software:
@@ -73,6 +90,8 @@ services:
     kind: identity
     exposure: intranet
     host: idp.city-hall.corp
+    network_id: city-hall-lan
+    bind_ip: 10.10.129.12
     auth: mfa
     data_classification: restricted
     software:

@@ -30,8 +30,7 @@ cybercity-data/
 │   ├── ORGANIZATIONS.md         ← per-org layout conventions
 │   └── LICENSE-DOCS             ← docs license
 ├── organizations/
-│   ├── city.yml                 # version + meta.city + meta.allocation
-│   └── <org>/config.yml         # per-organization data
+│   └── <org>/config.yml         # per-organization data (v2.0 explicit)
 ├── src/cybercity_data/
 │   ├── models.py                # Pydantic v2 schema
 │   ├── loader.py                # per-org → CityNetwork
@@ -53,20 +52,7 @@ cybercity-data/
     └── attack-surface.json      # public weak services
 ```
 
-## Data model (v1.0)
-
-### `Meta`
-
-```
-city: str
-allocation:
-  corp: CIDR
-  ot: CIDR
-  mgmt: CIDR
-  internet: CIDR
-```
-
-`allocation` provides base ranges for auto-allocated per-org networks.
+## Data model (v2.0)
 
 ### `Organization`
 
@@ -74,14 +60,8 @@ allocation:
 id, name, kind, segment
 description, third_party[], notes, tags[], regulated[]
 headcount_estimate
-networks[]                       # auto-allocated if empty
+networks[]                       # REQUIRED in v2.0
 ```
-
-Default networks by segment:
-- `corp` → `dmz`, `lan`, `mgmt`
-- `ot` → `ot`, `mgmt`
-- `mgmt` → `mgmt`
-- `public` → `internet`
 
 ### `Network`
 
@@ -96,7 +76,7 @@ description
 
 ```
 id, org_id, name, kind, exposure, host
-network_id, bind_ip            # concrete placement; auto-allocated if omitted
+network_id, bind_ip              # REQUIRED in v2.0
 software {vendor, product, version?, cve_id?}
 auth, data_classification
 ports, owner_team, known_weakness
@@ -113,21 +93,21 @@ encryption, bidirectional, label, attack_chain[]
 ### `CityNetwork`
 
 ```
-version, meta
+version                            # schema version, code constant
 organizations[], services[], links[]
 ```
 
 ## CLI
 
 ```bash
-cybercity-data check [PATH] [--json] [--strict]
+cybercity-data check [PATH] [--json] [--strict]   # validate only
 cybercity-data build [PATH] [--out DIR] [--json] [--strict]
 cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 ```
 
 - `check` — validate only.
 - `build` — validate + write artifacts; skips on errors.
-- `init` — scaffold a new org directory.
+- `init` — scaffold a new org directory with an empty networks list.
 - `--strict` — treat warnings as errors.
 
 ## Cross-field rules
@@ -144,7 +124,7 @@ cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 | `software` | error | cve_id matches `CVE-YYYY-NNNNN` |
 | `link-encryption` | warning | public service reached over unencrypted link |
 | `posture` | warning | public service with weak auth or known weakness |
-| `quota` | warning | v1.0 targets: 30 orgs, 95 services |
+| `quota` | warning | v2.0 targets: 30 orgs, 95 services |
 
 ## ADR
 
@@ -152,12 +132,13 @@ cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 |---|---|
 | ADR-0001 | Per-org layout; loader builds in-memory `CityNetwork` |
 | ADR-0002 | Pydantic v2, `extra="forbid"` |
-| ADR-0003 | `Network` first-class; auto-allocation from `meta.allocation` |
+| ADR-0003 | Explicit networks and IP addresses in v2.0 |
 | ADR-0004 | `Service.decoy` replaces standalone `Decoy` entity |
 | ADR-0005 | `org_id` injected by loader, not repeated in YAML |
 | ADR-0006 | CLI: `check`, `build`, `init`; exit codes 0/1 |
 | ADR-0007 | Build artifacts: `network.json`, `network.md`, `schema.json`, `topology.json`, `attack-surface.json` |
 | ADR-0008 | `--strict` makes warnings fail CI near v1.0 |
+| ADR-0009 | `CityNetwork` version is a code constant (`SCHEMA_VERSION`); no city-wide allocation file |
 
 ## License
 

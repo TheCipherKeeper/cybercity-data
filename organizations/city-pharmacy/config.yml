@@ -25,12 +25,25 @@ notes:
   - "phar-db содержит рецепты - lateral target от POS"
   - "phar-idp в этой итерации изолирован (нет внешних trusts)"
 
+networks:
+  - id: city-pharmacy-dmz
+    kind: dmz
+    cidr: 10.10.2.0/24
+  - id: city-pharmacy-lan
+    kind: lan
+    cidr: 10.10.130.0/24
+  - id: city-pharmacy-mgmt
+    kind: mgmt
+    cidr: 10.30.2.0/24
+
 services:
   - id: phar-pos
     name: "Pharmacy POS"
     kind: pos
     exposure: intranet
     host: pos.city-pharmacy.corp
+    network_id: city-pharmacy-lan
+    bind_ip: 10.10.130.10
     auth: local
     data_classification: phi
     software:
@@ -46,6 +59,8 @@ services:
     kind: identity
     exposure: intranet
     host: idp.city-pharmacy.corp
+    network_id: city-pharmacy-lan
+    bind_ip: 10.10.130.11
     auth: sso
     data_classification: restricted
     software:
@@ -60,6 +75,8 @@ services:
     kind: db
     exposure: intranet
     host: db.city-pharmacy.corp
+    network_id: city-pharmacy-lan
+    bind_ip: 10.10.130.12
     auth: certificate
     data_classification: phi
     software:

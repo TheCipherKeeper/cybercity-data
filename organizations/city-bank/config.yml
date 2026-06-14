@@ -29,12 +29,25 @@ notes:
   - "bank-idp - главная цель credential stuffing в сценариях"
   - "portal.city-bank.corp - публичный web, частый entry point"
 
+networks:
+  - id: city-bank-dmz
+    kind: dmz
+    cidr: 10.10.0.0/24
+  - id: city-bank-lan
+    kind: lan
+    cidr: 10.10.128.0/24
+  - id: city-bank-mgmt
+    kind: mgmt
+    cidr: 10.30.0.0/24
+
 services:
   - id: bank-web
     name: "Bank customer portal"
     kind: web
     exposure: public
     host: portal.city-bank.corp
+    network_id: city-bank-dmz
+    bind_ip: 10.10.0.10
     auth: sso
     data_classification: public
     software:
@@ -49,6 +62,8 @@ services:
     kind: api
     exposure: intranet
     host: api.city-bank.corp
+    network_id: city-bank-lan
+    bind_ip: 10.10.128.10
     auth: mfa
     data_classification: pci
     software:
@@ -63,6 +78,8 @@ services:
     kind: identity
     exposure: intranet
     host: idp.city-bank.corp
+    network_id: city-bank-lan
+    bind_ip: 10.10.128.11
     auth: mfa
     data_classification: restricted
     software:
@@ -77,6 +94,8 @@ services:
     kind: db
     exposure: intranet
     host: db.city-bank.corp
+    network_id: city-bank-lan
+    bind_ip: 10.10.128.12
     auth: certificate
     data_classification: pci
     software:

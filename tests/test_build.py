@@ -7,6 +7,7 @@ from pathlib import Path
 
 from cybercity_data import CityNetwork
 from cybercity_data.build import Builder
+from cybercity_data.models import Network, Organization, Service
 
 
 def test_build_produces_all_artifacts(tiny_network, tmp_path) -> None:
@@ -32,7 +33,7 @@ def test_build_produces_all_artifacts(tiny_network, tmp_path) -> None:
 def test_json_is_valid_dump(tiny_network, tmp_path) -> None:
     Builder(tiny_network).render(tmp_path)
     data = json.loads((tmp_path / "network.json").read_text(encoding="utf-8"))
-    assert data["meta"]["city"] == "cybercity"
+    assert data["version"] == "2.0.0"
     assert len(data["organizations"]) == 3
     assert len(data["services"]) == 4
 
@@ -40,7 +41,7 @@ def test_json_is_valid_dump(tiny_network, tmp_path) -> None:
 def test_topology_shape(tiny_network, tmp_path) -> None:
     Builder(tiny_network).render(tmp_path)
     topo = json.loads((tmp_path / "topology.json").read_text(encoding="utf-8"))
-    assert topo["meta"]["city"] == "cybercity"
+    assert "source_version" in topo["meta"]
     assert "summary" in topo
     assert len(topo["nodes"]) == 4
     assert len(topo["edges"]) == 1
@@ -95,23 +96,17 @@ def test_topology_summary_matches(tiny_network, tmp_path) -> None:
 
 
 def test_attack_surface_empty_when_no_public_weak() -> None:
-    from cybercity_data.models import CityNetwork, Organization, Service
-
     network = CityNetwork(
-        version="1.0.0",
-        meta={
-            "city": "x",
-            "allocation": {
-                "corp": "10.10.0.0/16",
-                "ot": "10.20.0.0/16",
-                "mgmt": "10.30.0.0/16",
-                "internet": "203.0.113.0/24",
-            },
-        },
+        version="2.0.0",
         organizations=[
             Organization(
-                id="a", name="A", kind="finance", segment="corp",
-                networks=[]
+                id="a",
+                name="A",
+                kind="finance",
+                segment="corp",
+                networks=[
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.10.1.0/24")
+                ],
             )
         ],
         services=[
@@ -123,24 +118,9 @@ def test_attack_surface_empty_when_no_public_weak() -> None:
                 exposure="intranet",
                 host="svc.a.corp",
                 network_id="a-dmz",
+                bind_ip="10.10.1.10",
             )
         ],
-    )
-    # Need to add network explicitly because auto-allocation only runs in loader.
-    network = network.model_copy(
-        update={
-            "organizations": [
-                Organization(
-                    id="a",
-                    name="A",
-                    kind="finance",
-                    segment="corp",
-                    networks=[
-                        {"id": "a-dmz", "org_id": "a", "kind": "dmz", "cidr": "10.10.1.0/24"}
-                    ],
-                )
-            ]
-        }
     )
     content = Builder(network).build()["attack-surface.json"]
     report = json.loads(content)
@@ -170,7 +150,7 @@ def test_attack_surface_skips_decoy(tiny_network: CityNetwork, tmp_path: Path) -
         exposure="public",
         host="decoy.example",
         network_id="city-hospital-dmz",
-        bind_ip="10.10.0.15",
+        bind_ip="10.10.10.15",
         decoy={"kind": "http", "fingerprint": "realistic"},
     )
     network = tiny_network.model_copy(

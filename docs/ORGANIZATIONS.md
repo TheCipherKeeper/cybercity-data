@@ -1,8 +1,7 @@
 # Organizations
 
 Карточки организаций в формате **1 папка = 1 организация**.
-Внутри папки — один файл `config.yml`. Городские метаданные живут в
-`organizations/city.yml`.
+Внутри папки — один файл `config.yml`.
 
 - [Architecture](../docs/ARCHITECTURE.md)
 - [Main README](../README.md)
@@ -11,35 +10,19 @@
 
 - Правка одной org — diff в одном `config.yml`.
 - LLM-агент читает один файл за раз.
-- Люди ревьюют изменения по org.
+- Люди ревьюят изменения по org.
 - Loader собирает всё в `CityNetwork` в памяти.
 
 ## Layout
 
 ```
 organizations/
-├── city.yml
 ├── city-hall/
 │   └── config.yml
 ├── city-bank/
 │   └── config.yml
 └── _archive/               # underscore-папки игнорируются loader'ом
 ```
-
-## `city.yml`
-
-```yaml
-version: "1.0.0"
-meta:
-  city: cybercity
-  allocation:
-    corp: 10.10.0.0/16
-    ot: 10.20.0.0/16
-    mgmt: 10.30.0.0/16
-    internet: 203.0.113.0/24
-```
-
-`allocation` — базовые диапазоны, из которых loader выделяет сети org.
 
 ## Шаблон `config.yml`
 
@@ -65,8 +48,8 @@ notes:
   - "OCS Inventory публично отдаёт hostname всех АРМ"
   - "Слабый пароль на POS-кассе №3 - entry point в сценарии 04"
 
-# Явные сети (опционально). Если не указаны, loader выделит дефолтные
-# по сегменту: corp → dmz/lan/mgmt, ot → ot/mgmt, и т.д.
+# Сети организации (ОБЯЗАТЕЛЬНЫ в v2.0).
+# Loader не выделяет IP-диапазоны автоматически.
 networks:
   - id: city-hospital-dmz
     kind: dmz
@@ -74,10 +57,12 @@ networks:
   - id: city-hospital-lan
     kind: lan
     cidr: 10.10.11.0/24
+  - id: city-hospital-mgmt
+    kind: mgmt
+    cidr: 10.30.10.0/24
 
-# Сервисы организации. `org_id` не указывается - loader подставляет из папки.
-# `network_id` и `bind_ip` тоже опциональны; loader выберет сеть по exposure
-# и назначит первый свободный IP.
+# Сервисы организации. `org_id` не пишется — loader подставляет из папки.
+# `network_id` и `bind_ip` обязательны в v2.0.
 services:
   - id: hosp-web
     name: "Hospital portal"
@@ -87,6 +72,8 @@ services:
                                # wiki | crm | pharmacy-front | iot
     exposure: public           # public | intranet | ot | mgmt
     host: portal.city-hospital.corp
+    network_id: city-hospital-dmz
+    bind_ip: 10.10.10.10
     auth: sso
     data_classification: public
     software:
@@ -101,6 +88,8 @@ services:
     kind: iot
     exposure: intranet
     host: decoy-printer-01.city-hospital.corp
+    network_id: city-hospital-lan
+    bind_ip: 10.10.11.15
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
@@ -123,7 +112,8 @@ links:
 - **1 папка = 1 организация.** Имя папки совпадает с `id` в `config.yml`.
 - **`config.yml` — единственный файл данных** в папке.
 - **`services[].org_id` не пишется.** Loader подставляет автоматически.
-- **Сети и IP можно не объявлять.** Loader создаст дефолтные по `segment`.
+- **`networks` обязательны.** Loader не создаёт сети и не назначает IP.
+- **`services[].network_id` и `services[].bind_ip` обязательны.** Валидатор поймает ошибки.
 - **links живут в папке from-организации.**
 - **Уникальность `(from, to, kind)`** для link'ов.
 - **Underscore-папки игнорируются.** `_archive/`, `_draft/`, `_wip/`.

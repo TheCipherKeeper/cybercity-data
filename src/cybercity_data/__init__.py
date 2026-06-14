@@ -7,7 +7,7 @@ from .build import Builder, build_artifacts
 from .check import Issue, NetworkChecker, Report, check
 from .loader import NetworkLoader, load_network
 from .models import (
-    Allocation,
+    SCHEMA_VERSION,
     AuthMethod,
     CityNetwork,
     DataClassification,
@@ -18,7 +18,6 @@ from .models import (
     Link,
     LinkEncryption,
     LinkKind,
-    Meta,
     Network,
     NetworkKind,
     Organization,
@@ -32,11 +31,10 @@ from .models import (
     WeaknessKind,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     # Models
-    "Allocation",
     "AuthMethod",
     "CityNetwork",
     "DataClassification",
@@ -47,12 +45,12 @@ __all__ = [
     "Link",
     "LinkEncryption",
     "LinkKind",
-    "Meta",
     "Network",
     "NetworkKind",
     "OrgKind",
     "Organization",
     "Regulation",
+    "SCHEMA_VERSION",
     "Segment",
     "Service",
     "Software",

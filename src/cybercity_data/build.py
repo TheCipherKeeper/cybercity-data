@@ -127,7 +127,6 @@ class Builder:
         topology = {
             "schema_version": 1,
             "meta": {
-                "city": self.network.meta.city,
                 "source_version": self.network.version,
             },
             "summary": {
@@ -179,7 +178,6 @@ class Builder:
         report = {
             "schema_version": 1,
             "meta": {
-                "city": self.network.meta.city,
                 "source_version": self.network.version,
             },
             "count": len(items),
@@ -210,7 +208,6 @@ class Builder:
         # ── 1. Сводка ─────────────────────────────────────────────────
         parts.append("## Сводка")
         parts.append("")
-        parts.append(f"- **Город:** {self.network.meta.city}")
         parts.append(f"- **Организаций:** {n_orgs} (цель: {TARGET_ORGS})")
         parts.append(f"- **Сервисов:** {n_svcs} (цель: {TARGET_SERVICES})")
         parts.append(f"- **Сетей:** {n_nets}")

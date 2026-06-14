@@ -6,12 +6,19 @@ segment: corp
 description: |
   Test fixture: 1 org with 1 service and 1 cross-org link to hosp-web.
 
+networks:
+  - id: city-courthouse-dmz
+    kind: dmz
+    cidr: 10.10.11.0/24
+
 services:
   - id: cour-web
     name: "Courthouse site"
     kind: web
     exposure: public
     host: www.city-courthouse.corp
+    network_id: city-courthouse-dmz
+    bind_ip: 10.10.11.10
 
 links:
   - from_service: cour-web

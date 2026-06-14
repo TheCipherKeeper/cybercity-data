@@ -129,6 +129,7 @@ def _run_check(path: Path, strict: bool) -> Result:
         result.error = traceback.format_exc()
         return result
 
+
     report = NetworkChecker().check(network)
     all_issues = [*loader_issues, *report.issues]
     result.errors = [i for i in all_issues if i.level == "error"]
@@ -297,6 +298,7 @@ def init_cmd(
         "services: []\n"
         "links: []\n"
     )
+    content += "networks: []\n"
     config_path.write_text(content, encoding="utf-8")
     typer.echo(f"Created {config_path}")
 

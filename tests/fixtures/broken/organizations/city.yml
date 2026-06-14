@@ -1,8 +1,0 @@
-version: "1.0.0"
-meta:
-  city: broken
-  allocation:
-    corp: 10.10.0.0/16
-    ot: 10.20.0.0/16
-    mgmt: 10.30.0.0/16
-    internet: 203.0.113.0/24

@@ -7,6 +7,10 @@
 Canonical declarative data layer for the CyberCity cyber-range:
 organizations, networks, services, links.
 
+In v2.0 everything is explicit: each organization declares its own networks,
+IP addresses, and service placement. The validator catches missing or
+inconsistent declarations.
+
 - **Architecture & model:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - **Per-org layout conventions:** [`docs/ORGANIZATIONS.md`](docs/ORGANIZATIONS.md)
 - **Generated view:** [`build/network.md`](build/network.md)

@@ -19,17 +19,6 @@ def _write(path: Path, text: str) -> None:
 def _make_broken_repo(root: Path) -> None:
     """Minimal repo that triggers validator errors (ids + refs) -> exit 1."""
     (root / "organizations").mkdir(parents=True)
-    _write(
-        root / "organizations" / "city.yml",
-        'version: "1.0.0"\n'
-        "meta:\n"
-        "  city: x\n"
-        "  allocation:\n"
-        "    corp: 10.10.0.0/16\n"
-        "    ot: 10.20.0.0/16\n"
-        "    mgmt: 10.30.0.0/16\n"
-        "    internet: 203.0.113.0/24\n",
-    )
     for org_id, label in (("city-a", "A"), ("city-b", "B")):
         (root / "organizations" / org_id).mkdir()
         _write(
@@ -38,12 +27,18 @@ def _make_broken_repo(root: Path) -> None:
             f"name: City {label}\n"
             "kind: finance\n"
             "segment: corp\n"
+            "networks:\n"
+            f"  - id: {org_id}-dmz\n"
+            "    kind: dmz\n"
+            f"    cidr: 10.10.{ord(label) - ord('A') + 1}.0/24\n"
             "services:\n"
             f"  - id: web\n"
             f"    name: {label} web\n"
             "    kind: web\n"
             "    exposure: public\n"
             f"    host: {label.lower()}.example\n"
+            f"    network_id: {org_id}-dmz\n"
+            f"    bind_ip: 10.10.{ord(label) - ord('A') + 1}.10\n"
             + (
                 "links:\n"
                 "  - from_service: web\n"
@@ -54,6 +49,31 @@ def _make_broken_repo(root: Path) -> None:
                 else ""
             ),
         )
+
+
+def _make_minimal_repo(root: Path) -> None:
+    """Minimal valid repo with one org."""
+    (root / "organizations").mkdir(parents=True)
+    (root / "organizations" / "city-x").mkdir()
+    _write(
+        root / "organizations" / "city-x" / "config.yml",
+        "id: city-x\n"
+        "name: X\n"
+        "kind: government\n"
+        "segment: corp\n"
+        "networks:\n"
+        "  - id: city-x-dmz\n"
+        "    kind: dmz\n"
+        "    cidr: 10.10.1.0/24\n"
+        "services:\n"
+        "  - id: web\n"
+        "    name: Web\n"
+        "    kind: web\n"
+        "    exposure: public\n"
+        "    host: web.example\n"
+        "    network_id: city-x-dmz\n"
+        "    bind_ip: 10.10.1.10\n",
+    )
 
 
 def test_check_ok_on_tiny(tiny_path: Path) -> None:
@@ -84,7 +104,7 @@ def test_check_json_shape_on_tiny(tiny_path: Path) -> None:
     assert data["path"] == str(tiny_path)
     assert data["counts"] == {
         "organizations": 3,
-        "networks": 8,
+        "networks": 3,
         "services": 4,
         "links": 1,
     }
@@ -118,14 +138,6 @@ def test_strict_mode_fails_on_warnings(tiny_path: Path) -> None:
 
 def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city.yml").write_text(
-        'version: "1.0.0"\nmeta:\n  city: x\n  allocation:\n'
-        "    corp: 10.10.0.0/16\n"
-        "    ot: 10.20.0.0/16\n"
-        "    mgmt: 10.30.0.0/16\n"
-        "    internet: 203.0.113.0/24\n",
-        encoding="utf-8",
-    )
     result = runner.invoke(
         app,
         [
@@ -146,6 +158,7 @@ def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
     assert "id: city-hospital" in text
     assert "kind: healthcare" in text
     assert "segment: corp" in text
+    assert "networks: []" in text
 
 
 def test_check_json_on_missing_dir(tmp_path: Path) -> None:
@@ -157,9 +170,9 @@ def test_check_json_on_missing_dir(tmp_path: Path) -> None:
     assert "error" in data
 
 
-def test_check_exits_1_on_bad_city_yaml(tmp_path: Path) -> None:
-    (tmp_path / "organizations").mkdir(parents=True)
-    _write(tmp_path / "organizations" / "city.yml", "not: valid: yaml: [\n")
+def test_check_exits_1_on_bad_yaml(tmp_path: Path) -> None:
+    _make_minimal_repo(tmp_path)
+    _write(tmp_path / "organizations" / "city-x" / "config.yml", "not: valid: yaml: [\n")
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
 
@@ -202,14 +215,6 @@ def test_init_fails_without_organizations(tmp_path: Path) -> None:
 
 def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
-    (tmp_path / "organizations" / "city.yml").write_text(
-        'version: "1.0.0"\nmeta:\n  city: x\n  allocation:\n'
-        "    corp: 10.10.0.0/16\n"
-        "    ot: 10.20.0.0/16\n"
-        "    mgmt: 10.30.0.0/16\n"
-        "    internet: 203.0.113.0/24\n",
-        encoding="utf-8",
-    )
     (tmp_path / "organizations" / "city-x").mkdir()
     result = runner.invoke(
         app,
@@ -240,20 +245,15 @@ def test_check_json_includes_rendered_paths(tiny_path: Path, tmp_path: Path) -> 
 
 
 def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
-    """City meta missing allocation -> ValidationError -> exit 1."""
-    (tmp_path / "organizations").mkdir(parents=True)
-    _write(
-        tmp_path / "organizations" / "city.yml",
-        'version: "1.0.0"\nmeta:\n  city: x\n',
-    )
-    (tmp_path / "organizations" / "city-x").mkdir()
+    """Bad organization kind -> loader/schema error -> exit 1."""
+    _make_minimal_repo(tmp_path)
     _write(
         tmp_path / "organizations" / "city-x" / "config.yml",
-        "id: city-x\nname: X\nkind: government\nsegment: corp\nservices: []\n",
+        "id: city-x\nname: X\nkind: not-a-kind\nsegment: corp\nnetworks: []\nservices: []\n",
     )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
-    assert "schema errors" in result.output
+    assert "L002" in result.output
 
 
 def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:
@@ -282,4 +282,4 @@ def test_build_exits_1_on_internal_render_error(
 def test_version_flag() -> None:
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0
-    assert "cybercity-data 0.3.0" in result.output
+    assert "cybercity-data 0.4.0" in result.output

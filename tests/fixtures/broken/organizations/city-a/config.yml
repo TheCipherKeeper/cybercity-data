@@ -3,9 +3,16 @@ name: "City A"
 kind: finance
 segment: corp
 
+networks:
+  - id: city-a-dmz
+    kind: dmz
+    cidr: 10.10.1.0/24
+
 services:
   - id: web
     name: "A web"
     kind: web
     exposure: public
     host: a.example
+    network_id: city-a-dmz
+    bind_ip: 10.10.1.10
