@@ -145,3 +145,8 @@ links:
 - **Сценарии и уязвимости** — в соседних репозиториях, потребляют эту модель.
 - **Нет свободных narrative-полей у организации.** `description` — единственный
   человекочитаемый блок. Если нужны заметки, используй YAML-комментарии (`#`).
+- **CLI помогает начать:** `cybercity-data init my-org --kind government --network-index 42`
+  создаёт шаблон с примером сети и сервиса. Флаг `--empty` даёт пустой шаблон.
+- **Сборка:** `cybercity-data build . --clean` пересоздаёт `build/` с актуальными
+  артефактами (`network.json`, `attack-surface.json`, `inventory.md`, `changes.json`,
+  `engine.zip` и др.).

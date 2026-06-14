@@ -12,9 +12,10 @@ Stages:
 | Stage | Job | Что делает |
 |---|---|---|
 | lint | `lint` | `uv run ruff check` |
+| typecheck | `typecheck` | `uv run mypy --strict src/cybercity_data` |
 | test | `test` | `uv run pytest -q --cov=... --cov-fail-under=95` |
 | validate | `check` | `uv run cybercity-data check .` |
-| build | `build` | `uv run cybercity-data build .` + артефакты |
+| build | `build` | `uv run cybercity-data build . --clean` + артефакты |
 
 Запускается на:
 - merge request
@@ -34,9 +35,10 @@ Jobs:
 | Job | Зависимости | Что делает |
 |---|---|---|
 | `lint` | — | `ruff check` |
-| `test` | `lint` | `pytest` с coverage ≥ 95% |
-| `check` | `lint` | `cybercity-data check .` |
-| `build` | `test`, `check` | `cybercity-data build .` + upload artifacts |
+| `typecheck` | `lint` | `mypy --strict src/cybercity_data` |
+| `test` | `lint`, `typecheck` | `pytest` с coverage ≥ 95% |
+| `check` | `lint`, `typecheck` | `cybercity-data check .` |
+| `build` | `test`, `check` | `cybercity-data build . --clean` + upload artifacts |
 
 Запускается на:
 - push в `main`
@@ -45,8 +47,8 @@ Jobs:
 
 ### Артефакты
 
-GitHub Actions загружает `build/*.json` и `build/network.md` как artifact
-с retention 7 дней.
+GitHub Actions загружает `build/*.json`, `build/*.md`, `build/*.html` и `build/engine.zip`
+как artifact с retention 7 дней.
 
 ## Exit codes
 

@@ -28,20 +28,22 @@ explicit links.
 uv sync
 uv run cybercity-data check .
 uv run cybercity-data build .
-uv run pytest
+uv run pytest -q
 uv run ruff check
+uv run mypy --strict src/cybercity_data
 ```
 
 ## CLI
 
 ```
 cybercity-data check [PATH] [--json] [--strict]   # validate only
-cybercity-data build [PATH] [--out DIR] [--json] [--strict]
-cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
+cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean]
+cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
 ```
 
 - `--strict` treats warnings as errors.
-- `init` scaffolds a new organization under `organizations/<ID>/`.
+- `--clean` removes the output directory before rendering.
+- `init` scaffolds a new organization under `organizations/<ID>/`. By default it includes an example network and service; use `--empty` for a minimal template.
 
 ## Artifacts
 
@@ -51,6 +53,11 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 - `build/network.md` — human-readable projection
 - `build/schema.json` — JSON Schema for downstream validation
 - `build/topology.json` — graph of services and links for UI/simulation
+- `build/network.html` — self-contained interactive graph viewer (opens in a browser)
+- `build/attack-surface.json` — publicly exposed services and CVE metadata
+- `build/inventory.md` — discovered service asset directories
+- `build/changes.json` — git-based diff against the previous build
+- `build/engine.zip` — bundled runtime package for `cybercity-engine`
 
 ## License
 
