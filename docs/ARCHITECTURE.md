@@ -5,6 +5,7 @@
 
 - [README](../README.md)
 - [Per-org layout conventions](ORGANIZATIONS.md)
+- [CI/CD pipelines](PIPELINES.md)
 
 ## Composition
 

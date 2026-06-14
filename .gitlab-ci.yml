@@ -11,26 +11,63 @@ default:
 stages:
   - lint
   - test
-  - check
+  - validate
+  - build
+
+variables:
+  UV_CACHE_DIR: "${CI_PROJECT_DIR}/.uv-cache"
+  GIT_DEPTH: 10
 
 lint:
   stage: lint
   script:
     - uv sync --frozen
     - uv run ruff check
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
 
 test:
   stage: test
   script:
     - uv sync --frozen
-    - uv run pytest -q
+    - uv run pytest -q --cov=src/cybercity_data --cov-report=term --cov-fail-under=95
   artifacts:
     when: on_failure
     paths:
       - .pytest_cache/
+    reports:
+      junit: .pytest_cache/junit.xml
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
 
 check:
-  stage: check
+  stage: validate
   script:
     - uv sync --frozen
     - uv run cybercity-data check .
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+
+build:
+  stage: build
+  script:
+    - uv sync --frozen
+    - uv run cybercity-data build .
+  artifacts:
+    paths:
+      - build/network.json
+      - build/network.md
+      - build/schema.json
+      - build/topology.json
+      - build/attack-surface.json
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "push"'

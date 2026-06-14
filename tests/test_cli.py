@@ -227,6 +227,58 @@ def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
     assert result.exit_code == 1
 
 
+def test_check_json_includes_rendered_paths(tiny_path: Path, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    result = runner.invoke(
+        app, ["build", str(tiny_path), "--out", str(out), "--json"]
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data["ok"] is True
+    assert "rendered" in data
+    assert any(str(out) in p for p in data["rendered"])
+
+
+def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
+    """City meta missing allocation -> ValidationError -> exit 1."""
+    (tmp_path / "organizations").mkdir(parents=True)
+    _write(
+        tmp_path / "organizations" / "city.yml",
+        'version: "1.0.0"\nmeta:\n  city: x\n',
+    )
+    (tmp_path / "organizations" / "city-x").mkdir()
+    _write(
+        tmp_path / "organizations" / "city-x" / "config.yml",
+        "id: city-x\nname: X\nkind: government\nsegment: corp\nservices: []\n",
+    )
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "schema errors" in result.output
+
+
+def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("simulated internal failure")
+
+    monkeypatch.setattr("cybercity_data.cli._load", boom)
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "simulated internal failure" in result.output
+
+
+def test_build_exits_1_on_internal_render_error(
+    tiny_path: Path, tmp_path: Path, monkeypatch
+) -> None:
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("render boom")
+
+    monkeypatch.setattr("cybercity_data.cli.Builder.render", boom)
+    out = tmp_path / "out"
+    result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out)])
+    assert result.exit_code == 1
+    assert "render boom" in result.output
+
+
 def test_version_flag() -> None:
     result = runner.invoke(app, ["--version"])
     assert result.exit_code == 0

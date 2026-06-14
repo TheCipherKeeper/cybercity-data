@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
+from cybercity_data import CityNetwork
 from cybercity_data.build import Builder
 
 
@@ -153,3 +155,34 @@ def test_render_preserves_unchanged_files(tiny_network, tmp_path) -> None:
     builder.render(tmp_path)
     second = (tmp_path / "network.json").stat().st_mtime
     assert second == first
+
+
+def test_attack_surface_skips_decoy(tiny_network: CityNetwork, tmp_path: Path) -> None:
+    """A public decoy must not appear in attack-surface report."""
+    from cybercity_data.models import Service
+
+    # Create a public-facing decoy service.
+    decoy = Service(
+        id="public-decoy",
+        org_id="city-hospital",
+        name="Public decoy",
+        kind="web",
+        exposure="public",
+        host="decoy.example",
+        network_id="city-hospital-dmz",
+        bind_ip="10.10.0.15",
+        decoy={"kind": "http", "fingerprint": "realistic"},
+    )
+    network = tiny_network.model_copy(
+        update={"services": [*tiny_network.services, decoy]}
+    )
+    report = json.loads(Builder(network).build()["attack-surface.json"])
+    assert not any(i["id"] == "public-decoy" for i in report["items"])
+
+
+def test_build_artifacts_free_function(tiny_network, tmp_path: Path) -> None:
+    from cybercity_data.build import build_artifacts
+
+    paths = build_artifacts(tiny_network, tmp_path)
+    assert len(paths) == 5
+    assert all((tmp_path / p.name).exists() for p in paths)

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from cybercity_data import CityNetwork
 from cybercity_data.loader import find_org_dirs, load_network
@@ -331,3 +332,166 @@ def test_load_l004_ip_pool_exhausted(tmp_path: Path) -> None:
     )
     network, issues = load_network(tmp_path)
     assert any(i.code == "L004" for i in issues)
+
+
+def test_load_city_yml_not_mapping(tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        "- just\n- a\n- list\n", encoding="utf-8"
+    )
+    with pytest.raises(FileNotFoundError):
+        load_network(tmp_path)
+
+
+def test_load_city_yml_meta_not_mapping(tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\nmeta: not-a-mapping\n', encoding="utf-8"
+    )
+    with pytest.raises(FileNotFoundError):
+        load_network(tmp_path)
+
+
+def test_load_city_yml_meta_validation_error(tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: not-a-cidr\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValidationError):
+        load_network(tmp_path)
+
+
+def test_load_no_org_dirs(tmp_path: Path) -> None:
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FileNotFoundError):
+        load_network(tmp_path)
+
+
+def test_load_final_assembly_validation_error(tmp_path: Path) -> None:
+    """city.version missing / wrong should fail final CityNetwork validation."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "bad-version"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "organizations" / "city-x").mkdir()
+    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+        "id: city-x\nname: X\nkind: government\nsegment: corp\nservices: []\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValidationError):
+        load_network(tmp_path)
+
+
+def test_load_service_without_matching_network_is_skipped(tmp_path: Path) -> None:
+    """If exposure maps to a kind the org does not have, network_id stays None."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "organizations" / "city-x").mkdir()
+    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+        "id: city-x\n"
+        "name: X\n"
+        "kind: government\n"
+        "segment: corp\n"
+        "networks:\n"
+        "  - id: city-x-dmz\n"
+        "    kind: dmz\n"
+        "    cidr: 10.10.99.0/24\n"
+        "services:\n"
+        "  - id: svc\n"
+        "    name: S\n"
+        "    kind: web\n"
+        "    exposure: ot\n"         # org has no ot network
+        "    host: svc.example\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    svc = network.services[0]
+    assert svc.network_id is None
+    assert svc.bind_ip is None
+
+
+def test_load_bind_ip_without_network_is_skipped(tmp_path: Path) -> None:
+    """If service network_id points to a non-existent network, bind_ip stays None."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "organizations" / "city-x").mkdir()
+    (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
+        "id: city-x\n"
+        "name: X\n"
+        "kind: government\n"
+        "segment: corp\n"
+        "networks:\n"
+        "  - id: city-x-dmz\n"
+        "    kind: dmz\n"
+        "    cidr: 10.10.99.0/24\n"
+        "services:\n"
+        "  - id: svc\n"
+        "    name: S\n"
+        "    kind: web\n"
+        "    exposure: public\n"
+        "    host: svc.example\n"
+        "    network_id: ghost-network\n"
+        "    bind_ip: 10.10.99.10\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    svc = network.services[0]
+    assert svc.bind_ip == "10.10.99.10"
+
+
+def test_allocate_cidr_unknown_kind() -> None:
+    from cybercity_data.loader import _allocate_cidr
+    from cybercity_data.models import Allocation
+
+    allocation = Allocation(
+        corp="10.10.0.0/16",
+        ot="10.20.0.0/16",
+        mgmt="10.30.0.0/16",
+        internet="203.0.113.0/24",
+    )
+    with pytest.raises(ValueError):
+        _allocate_cidr("unknown", 0, allocation)

@@ -349,3 +349,25 @@ def test_link_encryption_public_warning(tiny_network: CityNetwork) -> None:
         i.code == "link-encryption" and "unencrypted link" in i.message
         for i in report.warnings
     )
+
+
+def test_posture_skips_public_decoy(tiny_network: CityNetwork) -> None:
+    """A public-facing decoy must not trigger posture warning."""
+    from cybercity_data.models import Service
+
+    decoy = Service(
+        id="public-decoy",
+        org_id="city-hospital",
+        name="Public decoy",
+        kind="web",
+        exposure="public",
+        host="decoy.example",
+        network_id="city-hospital-dmz",
+        bind_ip="10.10.0.15",
+        decoy={"kind": "http", "fingerprint": "realistic"},
+    )
+    bad = tiny_network.model_copy(
+        update={"services": [*tiny_network.services, decoy]}
+    )
+    report = check(bad)
+    assert not any(i.path == "services[4]" for i in report.warnings)
