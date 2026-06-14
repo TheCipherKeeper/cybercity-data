@@ -1,0 +1,155 @@
+id: museum
+name: "City Museum"
+kind: education
+network_index: 37
+
+description: |
+  Крупный городской музей. Публичный каталог экспонатов, система
+  управления коллекциями, Wi-Fi для посетителей и CCTV.
+
+networks:
+  - id: museum-dmz
+    kind: dmz
+    cidr: 10.37.1.0/24
+  - id: museum-lan
+    kind: lan
+    cidr: 10.37.129.0/24
+  - id: museum-mgmt
+    kind: mgmt
+    cidr: 10.37.253.0/24
+
+services:
+  - id: museum-web
+    name: "Museum portal"
+    kind: web
+    exposure: public
+    host: portal.museum.culture
+    network_id: museum-dmz
+    bind_ip: 10.37.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: museum-cms
+    name: "Museum collection CMS"
+    kind: web
+    exposure: intranet
+    host: cms.museum.culture
+    network_id: museum-lan
+    bind_ip: 10.37.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: Custom
+      product: museum-cms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: museum-db
+    name: "Museum exhibits DB"
+    kind: db
+    exposure: intranet
+    host: db.museum.culture
+    network_id: museum-lan
+    bind_ip: 10.37.129.11
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: medium
+
+  - id: museum-wifi
+    name: "Museum visitor Wi-Fi"
+    kind: iot
+    exposure: public
+    host: wifi.museum.culture
+    network_id: museum-dmz
+    bind_ip: 10.37.1.11
+    auth: none
+    data_classification: public
+    ports: [tcp/80, tcp/443, udp/53]
+    criticality: low
+
+  - id: museum-cctv
+    name: "Museum CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.museum.culture
+    network_id: museum-lan
+    bind_ip: 10.37.129.12
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: ivms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: museum-backup
+    name: "Museum backup"
+    kind: backup
+    exposure: intranet
+    host: backup.museum.culture
+    network_id: museum-lan
+    bind_ip: 10.37.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: medium
+
+links:
+  - from_service: museum-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: museum-cms
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "CMS DNS resolution"
+
+  - from_service: museum-cms
+    to_service: museum-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "exhibits catalog"
+
+  - from_service: museum-wifi
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "captive portal DNS"
+
+  - from_service: museum-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: museum-backup
+    to_service: museum-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "exhibits DB backup"

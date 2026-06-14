@@ -1,0 +1,151 @@
+id: railway
+name: "City Central Railway"
+kind: infra-utilities
+network_index: 35
+
+description: |
+  Городская железнодорожная компания. Управляет пассажирскими поездами,
+  вокзалом, маршрутами и системой билетов. Дополняет общественный
+  транспорт и аэропорт.
+
+networks:
+  - id: railway-dmz
+    kind: dmz
+    cidr: 10.35.1.0/24
+  - id: railway-lan
+    kind: lan
+    cidr: 10.35.129.0/24
+  - id: railway-mgmt
+    kind: mgmt
+    cidr: 10.35.253.0/24
+
+services:
+  - id: rail-web
+    name: "Railway portal"
+    kind: web
+    exposure: public
+    host: portal.railway.corp
+    network_id: railway-dmz
+    bind_ip: 10.35.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: rail-tickets
+    name: "Railway ticketing"
+    kind: web
+    exposure: intranet
+    host: tickets.railway.corp
+    network_id: railway-lan
+    bind_ip: 10.35.129.10
+    auth: sso
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: rail-tickets
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: rail-ops
+    name: "Railway operations"
+    kind: api
+    exposure: intranet
+    host: ops.railway.corp
+    network_id: railway-lan
+    bind_ip: 10.35.129.11
+    auth: mfa
+    data_classification: internal
+    software:
+      vendor: Custom
+      product: rail-ops
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: rail-db
+    name: "Railway schedule DB"
+    kind: db
+    exposure: intranet
+    host: db.railway.corp
+    network_id: railway-lan
+    bind_ip: 10.35.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: rail-backup
+    name: "Railway backup"
+    kind: backup
+    exposure: intranet
+    host: backup.railway.corp
+    network_id: railway-lan
+    bind_ip: 10.35.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: rail-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: rail-tickets
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "ticketing DNS resolution"
+
+  - from_service: rail-tickets
+    to_service: rail-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "schedules and tickets"
+
+  - from_service: rail-tickets
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: rail-ops
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "ops DNS resolution"
+
+  - from_service: rail-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: rail-backup
+    to_service: rail-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "schedule DB backup"

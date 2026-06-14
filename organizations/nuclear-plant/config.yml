@@ -1,0 +1,170 @@
+id: nuclear-plant
+name: "City Nuclear Power Plant"
+kind: infra-utilities
+network_index: 30
+
+description: |
+  Городская атомная электростанция. Управляет реактором, турбинами,
+  радиационным мониторингом и системами физической безопасности.
+  OT-сегмент строго изолирован, связь с энергосетью и центром ЧС.
+
+networks:
+  - id: nuclear-plant-dmz
+    kind: dmz
+    cidr: 10.30.1.0/24
+  - id: nuclear-plant-lan
+    kind: lan
+    cidr: 10.30.129.0/24
+  - id: nuclear-plant-ot
+    kind: ot
+    cidr: 10.30.128.0/24
+  - id: nuclear-plant-mgmt
+    kind: mgmt
+    cidr: 10.30.253.0/24
+
+services:
+  - id: npp-web
+    name: "NPP public info"
+    kind: web
+    exposure: public
+    host: portal.nuclear-plant.corp
+    network_id: nuclear-plant-dmz
+    bind_ip: 10.30.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: npp-scada
+    name: "NPP reactor SCADA"
+    kind: ot
+    exposure: ot
+    host: scada.nuclear-plant.corp
+    network_id: nuclear-plant-ot
+    bind_ip: 10.30.128.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: InductiveAutomation
+      product: ignition
+      version: "8.1"
+    ports: [tcp/443, tcp/502]
+    criticality: critical
+
+  - id: npp-hmi
+    name: "NPP operator HMI"
+    kind: ot
+    exposure: ot
+    host: hmi.nuclear-plant.corp
+    network_id: nuclear-plant-ot
+    bind_ip: 10.30.128.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Aveva
+      product: intouch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: npp-radiation
+    name: "NPP radiation monitoring"
+    kind: iot
+    exposure: intranet
+    host: radiation.nuclear-plant.corp
+    network_id: nuclear-plant-lan
+    bind_ip: 10.30.129.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Custom
+      product: radiation-mon
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: npp-db
+    name: "NPP telemetry DB"
+    kind: db
+    exposure: intranet
+    host: db.nuclear-plant.corp
+    network_id: nuclear-plant-lan
+    bind_ip: 10.30.129.11
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: npp-backup
+    name: "NPP backup"
+    kind: backup
+    exposure: intranet
+    host: backup.nuclear-plant.corp
+    network_id: nuclear-plant-lan
+    bind_ip: 10.30.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: npp-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: npp-scada
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "OT time sync"
+
+  - from_service: npp-scada
+    to_service: npp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "reactor telemetry"
+
+  - from_service: npp-hmi
+    to_service: npp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "operator telemetry"
+
+  - from_service: npp-radiation
+    to_service: npp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "radiation logs"
+
+  - from_service: npp-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: npp-backup
+    to_service: npp-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "telemetry DB backup"

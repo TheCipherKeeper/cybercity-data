@@ -1,0 +1,158 @@
+id: crypto-exchange
+name: "City Crypto Exchange"
+kind: finance
+network_index: 29
+
+description: |
+  Городская криптовалютная биржа. Хранит горячие и холодные кошельки,
+  обрабатывает торговые ордера, фиатные шлюзы и KYC/AML.
+  Связана с банком для фиатных расчётов.
+
+networks:
+  - id: crypto-exchange-dmz
+    kind: dmz
+    cidr: 10.29.1.0/24
+  - id: crypto-exchange-lan
+    kind: lan
+    cidr: 10.29.129.0/24
+  - id: crypto-exchange-mgmt
+    kind: mgmt
+    cidr: 10.29.253.0/24
+
+services:
+  - id: crypto-web
+    name: "Crypto exchange portal"
+    kind: web
+    exposure: public
+    host: portal.crypto-exchange.corp
+    network_id: crypto-exchange-dmz
+    bind_ip: 10.29.1.10
+    auth: mfa
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: critical
+
+  - id: crypto-api
+    name: "Crypto trading API"
+    kind: api
+    exposure: public
+    host: api.crypto-exchange.corp
+    network_id: crypto-exchange-dmz
+    bind_ip: 10.29.1.11
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: crypto-trading-api
+      version: "unknown"
+    ports: [tcp/443, tcp/8443]
+    criticality: critical
+
+  - id: crypto-wallet
+    name: "Crypto wallet custody"
+    kind: db
+    exposure: intranet
+    host: wallet.crypto-exchange.corp
+    network_id: crypto-exchange-lan
+    bind_ip: 10.29.129.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Custom
+      product: custody-vault
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: crypto-db
+    name: "Crypto user and ledger DB"
+    kind: db
+    exposure: intranet
+    host: db.crypto-exchange.corp
+    network_id: crypto-exchange-lan
+    bind_ip: 10.29.129.11
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: crypto-backup
+    name: "Crypto exchange backup"
+    kind: backup
+    exposure: intranet
+    host: backup.crypto-exchange.corp
+    network_id: crypto-exchange-lan
+    bind_ip: 10.29.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: crypto-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: crypto-api
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "trading API DNS resolution"
+
+  - from_service: crypto-api
+    to_service: crypto-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "orders and balances"
+
+  - from_service: crypto-api
+    to_service: crypto-wallet
+    kind: db-read
+    protocol: tcp/443
+    encryption: tls
+    label: "custody operations"
+
+  - from_service: crypto-api
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "fiat gateway"
+
+  - from_service: crypto-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: crypto-wallet
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "custody audit logs"
+
+  - from_service: crypto-backup
+    to_service: crypto-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "user DB backup"

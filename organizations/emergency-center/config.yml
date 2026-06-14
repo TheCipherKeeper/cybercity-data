@@ -1,0 +1,158 @@
+id: emergency-center
+name: "City Emergency Operations Center"
+kind: government
+network_index: 40
+
+description: |
+  Единый городской центр экстренного реагирования. Координирует полицию,
+  пожарных, скорую, нацгвардию, АЭС и транспорт при ЧС. Собирает
+  оперативную сводку и оповещает население.
+
+networks:
+  - id: emergency-center-dmz
+    kind: dmz
+    cidr: 10.40.1.0/24
+  - id: emergency-center-lan
+    kind: lan
+    cidr: 10.40.129.0/24
+  - id: emergency-center-mgmt
+    kind: mgmt
+    cidr: 10.40.253.0/24
+
+services:
+  - id: eoc-web
+    name: "Emergency public alerts"
+    kind: web
+    exposure: public
+    host: alerts.emergency-center.gov
+    network_id: emergency-center-dmz
+    bind_ip: 10.40.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: critical
+
+  - id: eoc-dispatch
+    name: "EOC dispatch"
+    kind: web
+    exposure: intranet
+    host: dispatch.emergency-center.gov
+    network_id: emergency-center-lan
+    bind_ip: 10.40.129.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Custom
+      product: eoc-dispatch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: eoc-gis
+    name: "EOC GIS"
+    kind: api
+    exposure: intranet
+    host: gis.emergency-center.gov
+    network_id: emergency-center-lan
+    bind_ip: 10.40.129.11
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Esri
+      product: arcgis-server
+      version: "10.9"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: eoc-db
+    name: "EOC incidents DB"
+    kind: db
+    exposure: intranet
+    host: db.emergency-center.gov
+    network_id: emergency-center-lan
+    bind_ip: 10.40.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: eoc-backup
+    name: "EOC backup"
+    kind: backup
+    exposure: intranet
+    host: backup.emergency-center.gov
+    network_id: emergency-center-lan
+    bind_ip: 10.40.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: eoc-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public alerts DNS resolution"
+
+  - from_service: eoc-dispatch
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "dispatch DNS resolution"
+
+  - from_service: eoc-dispatch
+    to_service: eoc-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "incident registry"
+
+  - from_service: eoc-gis
+    to_service: eoc-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "incident maps"
+
+  - from_service: eoc-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: eoc-dispatch
+    to_service: police-cad
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "police coordination"
+
+  - from_service: eoc-dispatch
+    to_service: fire-dispatch
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "fire coordination"
+
+  - from_service: eoc-backup
+    to_service: eoc-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "incidents DB backup"

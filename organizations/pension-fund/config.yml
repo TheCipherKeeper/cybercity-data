@@ -1,0 +1,136 @@
+id: pension-fund
+name: "City Pension Fund"
+kind: finance
+network_index: 36
+
+description: |
+  Городской пенсионный фонд. Управляет накопительными счетами,
+  выплатами и интегрирован с муниципалитетом и банком.
+
+networks:
+  - id: pension-fund-dmz
+    kind: dmz
+    cidr: 10.36.1.0/24
+  - id: pension-fund-lan
+    kind: lan
+    cidr: 10.36.129.0/24
+  - id: pension-fund-mgmt
+    kind: mgmt
+    cidr: 10.36.253.0/24
+
+services:
+  - id: pension-web
+    name: "Pension fund portal"
+    kind: web
+    exposure: public
+    host: portal.pension-fund.corp
+    network_id: pension-fund-dmz
+    bind_ip: 10.36.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: pension-api
+    name: "Pension fund API"
+    kind: api
+    exposure: intranet
+    host: api.pension-fund.corp
+    network_id: pension-fund-lan
+    bind_ip: 10.36.129.10
+    auth: mfa
+    data_classification: pii
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: pension-db
+    name: "Pension fund DB"
+    kind: db
+    exposure: intranet
+    host: db.pension-fund.corp
+    network_id: pension-fund-lan
+    bind_ip: 10.36.129.11
+    auth: certificate
+    data_classification: pii
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: pension-idp
+    name: "Pension fund SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.pension-fund.corp
+    network_id: pension-fund-lan
+    bind_ip: 10.36.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: pension-backup
+    name: "Pension fund backup"
+    kind: backup
+    exposure: intranet
+    host: backup.pension-fund.corp
+    network_id: pension-fund-lan
+    bind_ip: 10.36.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: pension-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: pension-api
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "API DNS resolution"
+
+  - from_service: pension-api
+    to_service: pension-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "pension accounts"
+
+  - from_service: pension-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: pension-backup
+    to_service: pension-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "pension DB backup"

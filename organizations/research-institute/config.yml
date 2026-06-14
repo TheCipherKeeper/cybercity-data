@@ -1,0 +1,151 @@
+id: research-institute
+name: "City Research Institute"
+kind: education
+network_index: 31
+
+description: |
+  Городской научно-исследовательский институт. Ведёт базовые и прикладные
+  исследования, эксперименты с квантовыми вычислениями и суперкомпьютингом.
+  Сотрудничает с университетом и муниципалитетом.
+
+networks:
+  - id: research-institute-dmz
+    kind: dmz
+    cidr: 10.31.1.0/24
+  - id: research-institute-lan
+    kind: lan
+    cidr: 10.31.129.0/24
+  - id: research-institute-mgmt
+    kind: mgmt
+    cidr: 10.31.253.0/24
+
+services:
+  - id: nii-web
+    name: "Research institute portal"
+    kind: web
+    exposure: public
+    host: portal.research-institute.corp
+    network_id: research-institute-dmz
+    bind_ip: 10.31.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: nii-quantum
+    name: "Quantum computer control"
+    kind: api
+    exposure: intranet
+    host: quantum.research-institute.corp
+    network_id: research-institute-lan
+    bind_ip: 10.31.129.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: IBM
+      product: qiskit-runtime
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: nii-hpc
+    name: "Supercomputing cluster"
+    kind: api
+    exposure: intranet
+    host: hpc.research-institute.corp
+    network_id: research-institute-lan
+    bind_ip: 10.31.129.11
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: slurm-cluster
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: nii-db
+    name: "Research data DB"
+    kind: db
+    exposure: intranet
+    host: db.research-institute.corp
+    network_id: research-institute-lan
+    bind_ip: 10.31.129.12
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: nii-backup
+    name: "Research backup"
+    kind: backup
+    exposure: intranet
+    host: backup.research-institute.corp
+    network_id: research-institute-lan
+    bind_ip: 10.31.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: nii-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: nii-quantum
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "quantum DNS resolution"
+
+  - from_service: nii-hpc
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "HPC DNS resolution"
+
+  - from_service: nii-quantum
+    to_service: nii-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "experiment data"
+
+  - from_service: nii-hpc
+    to_service: nii-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "job metadata"
+
+  - from_service: nii-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: nii-backup
+    to_service: nii-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "research DB backup"

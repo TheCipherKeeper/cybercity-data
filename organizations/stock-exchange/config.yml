@@ -1,0 +1,150 @@
+id: stock-exchange
+name: "City Stock Exchange"
+kind: finance
+network_index: 39
+
+description: |
+  Городская фондовая биржа. Управляет торговлей акциями, листингом,
+  клирингом и маркет-датой. Связана с банком, криптобиржей и новостями.
+
+networks:
+  - id: stock-exchange-dmz
+    kind: dmz
+    cidr: 10.39.1.0/24
+  - id: stock-exchange-lan
+    kind: lan
+    cidr: 10.39.129.0/24
+  - id: stock-exchange-mgmt
+    kind: mgmt
+    cidr: 10.39.253.0/24
+
+services:
+  - id: stock-web
+    name: "Stock exchange portal"
+    kind: web
+    exposure: public
+    host: portal.stock-exchange.corp
+    network_id: stock-exchange-dmz
+    bind_ip: 10.39.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: stock-trading
+    name: "Stock trading engine"
+    kind: api
+    exposure: intranet
+    host: trading.stock-exchange.corp
+    network_id: stock-exchange-lan
+    bind_ip: 10.39.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: trading-engine
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: market-data
+    name: "Market data feed"
+    kind: api
+    exposure: intranet
+    host: market.stock-exchange.corp
+    network_id: stock-exchange-lan
+    bind_ip: 10.39.129.11
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: Custom
+      product: market-data
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: stock-db
+    name: "Stock exchange orders DB"
+    kind: db
+    exposure: intranet
+    host: db.stock-exchange.corp
+    network_id: stock-exchange-lan
+    bind_ip: 10.39.129.12
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: stock-backup
+    name: "Stock exchange backup"
+    kind: backup
+    exposure: intranet
+    host: backup.stock-exchange.corp
+    network_id: stock-exchange-lan
+    bind_ip: 10.39.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: stock-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: stock-trading
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "trading engine DNS resolution"
+
+  - from_service: stock-trading
+    to_service: stock-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "orders and trades"
+
+  - from_service: market-data
+    to_service: stock-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "market history"
+
+  - from_service: market-data
+    to_service: news-cms
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "market news feed"
+
+  - from_service: stock-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: stock-backup
+    to_service: stock-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "orders DB backup"
