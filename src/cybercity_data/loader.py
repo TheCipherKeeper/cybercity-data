@@ -4,8 +4,8 @@ Layout:
 
     organizations/
         <org-id>/
-            config.yml          # id, name, kind, network_index, networks,
-                                # services, links, plus narrative fields
+            config.yml          # id, name, kind, network_index, description,
+                                # networks, services, links
 
 Design goals for v2.0:
   * `org_id` is injected from the directory name.

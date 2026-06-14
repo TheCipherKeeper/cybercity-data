@@ -136,6 +136,7 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 | ADR-0007 | Build artifacts: `network.json`, `network.md`, `schema.json`, `topology.json` |
 | ADR-0008 | `--strict` makes warnings fail CI |
 | ADR-0009 | `CityNetwork` version is a code constant (`SCHEMA_VERSION`); no city-wide allocation file |
+| ADR-0010 | `Organization` keeps only structural fields; narrative metadata lives in `description` or is removed |
 
 ## License
 
