@@ -1,7 +1,7 @@
 id: city-power
 name: "City Power & Light"
 kind: infra-utilities
-segment: ot
+network_index: 4
 
 description: |
   Городская энергетическая компания. SCADA-шлюз управляет подстанциями.
@@ -10,10 +10,10 @@ description: |
 networks:
   - id: city-power-ot
     kind: ot
-    cidr: 10.20.0.0/24
+    cidr: 10.4.0.0/24
   - id: city-power-mgmt
     kind: mgmt
-    cidr: 10.30.3.0/24
+    cidr: 10.4.253.0/24
 
 services:
   - id: power-ot
@@ -22,7 +22,7 @@ services:
     exposure: ot
     host: scada.city-power.ot
     network_id: city-power-ot
-    bind_ip: 10.20.0.10
+    bind_ip: 10.4.0.10
     auth: certificate
     data_classification: restricted
     software:
@@ -37,7 +37,7 @@ services:
     exposure: ot
     host: decoy-printer-01.city-power.ot
     network_id: city-power-ot
-    bind_ip: 10.20.0.11
+    bind_ip: 10.4.0.11
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer

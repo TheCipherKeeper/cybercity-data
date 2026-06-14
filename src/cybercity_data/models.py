@@ -15,7 +15,6 @@ from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "OrgKind",
-    "Segment",
     "SvcKind",
     "Exposure",
     "NetworkKind",
@@ -54,8 +53,6 @@ OrgKind = Literal[
     "education",
     "msp",
 ]
-
-Segment = Literal["corp", "ot", "mgmt", "public"]
 
 SvcKind = Literal[
     "web",
@@ -205,7 +202,8 @@ class Organization(_StrictModel):
     id: str = Field(pattern=_KEBAB)
     name: str
     kind: OrgKind
-    segment: Segment
+    # City-wide unique second octet (1-255). The org's networks must live in 10.<index>.x.x.
+    network_index: int = Field(ge=1, le=255)
 
     description: str | None = None
     third_party: list[ThirdParty] = []

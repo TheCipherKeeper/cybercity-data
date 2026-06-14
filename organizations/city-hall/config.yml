@@ -1,7 +1,7 @@
 id: city-hall
 name: "City Hall"
 kind: government
-segment: corp
+network_index: 1
 
 description: |
   Муниципальный центр города. Принимает налоговые декларации,
@@ -30,13 +30,13 @@ notes:
 networks:
   - id: city-hall-dmz
     kind: dmz
-    cidr: 10.10.1.0/24
+    cidr: 10.1.1.0/24
   - id: city-hall-lan
     kind: lan
-    cidr: 10.10.129.0/24
+    cidr: 10.1.129.0/24
   - id: city-hall-mgmt
     kind: mgmt
-    cidr: 10.30.1.0/24
+    cidr: 10.1.253.0/24
 
 services:
   - id: hall-web
@@ -45,7 +45,7 @@ services:
     exposure: public
     host: portal.city-hall.corp
     network_id: city-hall-dmz
-    bind_ip: 10.10.1.10
+    bind_ip: 10.1.1.10
     auth: sso
     data_classification: public
     software:
@@ -61,7 +61,7 @@ services:
     exposure: intranet
     host: mail.city-hall.corp
     network_id: city-hall-lan
-    bind_ip: 10.10.129.10
+    bind_ip: 10.1.129.10
     auth: sso
     data_classification: internal
     software:
@@ -77,7 +77,7 @@ services:
     exposure: intranet
     host: fs.city-hall.corp
     network_id: city-hall-lan
-    bind_ip: 10.10.129.11
+    bind_ip: 10.1.129.11
     auth: sso
     data_classification: confidential
     software:
@@ -93,7 +93,7 @@ services:
     exposure: intranet
     host: idp.city-hall.corp
     network_id: city-hall-lan
-    bind_ip: 10.10.129.12
+    bind_ip: 10.1.129.12
     auth: mfa
     data_classification: restricted
     software:
@@ -109,7 +109,7 @@ services:
     exposure: public
     host: dns.city-hall.corp
     network_id: city-hall-dmz
-    bind_ip: 10.10.1.11
+    bind_ip: 10.1.1.11
     auth: none
     data_classification: public
     software:
@@ -125,7 +125,7 @@ services:
     exposure: intranet
     host: ntp.city-hall.corp
     network_id: city-hall-lan
-    bind_ip: 10.10.129.13
+    bind_ip: 10.1.129.13
     auth: none
     data_classification: internal
     software:
@@ -141,7 +141,7 @@ services:
     exposure: intranet
     host: log.city-hall.corp
     network_id: city-hall-lan
-    bind_ip: 10.10.129.14
+    bind_ip: 10.1.129.14
     auth: certificate
     data_classification: internal
     software:

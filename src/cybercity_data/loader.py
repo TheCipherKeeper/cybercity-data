@@ -4,7 +4,7 @@ Layout:
 
     organizations/
         <org-id>/
-            config.yml          # id, name, kind, segment, networks,
+            config.yml          # id, name, kind, network_index, networks,
                                 # services, links, plus narrative fields
 
 Design goals for v2.0:

@@ -67,7 +67,7 @@ def test_load_l003_id_mismatch(tmp_path: Path) -> None:
         "id: different\n"
         "name: X\n"
         "kind: government\n"
-        "segment: corp\n"
+        "network_index: 1\n"
         "networks: []\n"
         "services: []\n",
         encoding="utf-8",
@@ -83,7 +83,7 @@ def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
         "id: city-x\n"
         "name: X\n"
         "kind: not-a-kind\n"
-        "segment: corp\n"
+        "network_index: 1\n"
         "networks: []\n"
         "services: []\n",
         encoding="utf-8",
@@ -137,7 +137,7 @@ def test_load_l002_service_schema_error(tmp_path: Path) -> None:
         "id: city-x\n"
         "name: X\n"
         "kind: government\n"
-        "segment: corp\n"
+        "network_index: 1\n"
         "networks: []\n"
         "services:\n"
         "  - id: bad-svc\n"
@@ -158,7 +158,7 @@ def test_load_l002_link_schema_error(tmp_path: Path) -> None:
         "id: city-x\n"
         "name: X\n"
         "kind: government\n"
-        "segment: corp\n"
+        "network_index: 1\n"
         "networks: []\n"
         "services:\n"
         "  - id: svc\n"
@@ -167,7 +167,7 @@ def test_load_l002_link_schema_error(tmp_path: Path) -> None:
         "    exposure: public\n"
         "    host: svc.example\n"
         "    network_id: city-x-dmz\n"
-        "    bind_ip: 10.10.99.10\n"
+        "    bind_ip: 10.1.99.10\n"
         "links:\n"
         "  - from_service: svc\n"
         "    to_service: svc\n"
@@ -189,7 +189,7 @@ def test_load_final_assembly_validation_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "city-x").mkdir()
     (tmp_path / "organizations" / "city-x" / "config.yml").write_text(
-        "id: city-x\nname: X\nkind: government\nsegment: corp\nnetworks: []\nservices: []\n",
+        "id: city-x\nname: X\nkind: government\nnetwork_index: 1\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     # Direct CityNetwork construction with bad version should raise.

@@ -1,7 +1,7 @@
 id: city-hospital
 name: "City General Hospital"
 kind: healthcare
-segment: corp
+network_index: 10
 
 description: |
   Test fixture: 1 org with a single web service.

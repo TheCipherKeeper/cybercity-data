@@ -24,7 +24,7 @@ def test_bad_org_kind_rejected() -> None:
                 "id": "bad",
                 "name": "Bad",
                 "kind": "non-existent",
-                "segment": "corp",
+                "network_index": 1,
             }
         ],
     }
@@ -36,7 +36,7 @@ def test_id_pattern_kebab_case() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "Has_Caps", "name": "x", "kind": "government", "segment": "corp"}
+            {"id": "Has_Caps", "name": "x", "kind": "government", "network_index": 1}
         ],
     }
     with pytest.raises(ValidationError):
@@ -51,7 +51,7 @@ def test_extra_field_rejected() -> None:
                 "id": "city-x",
                 "name": "X",
                 "kind": "government",
-                "segment": "corp",
+                "network_index": 1,
                 "smuggled": True,
             }
         ],
@@ -72,7 +72,7 @@ def test_service_requires_host_fqdn() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
@@ -93,7 +93,7 @@ def test_cve_id_pattern() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
@@ -119,7 +119,7 @@ def test_service_ports_pattern() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
@@ -141,7 +141,7 @@ def test_service_ports_accepts_valid() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
@@ -169,7 +169,7 @@ def test_known_weakness_rejected() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {
@@ -192,7 +192,7 @@ def test_attack_chain_rejected() -> None:
     raw = {
         "version": "2.0.0",
         "organizations": [
-            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+            {"id": "city-x", "name": "X", "kind": "government", "network_index": 1}
         ],
         "services": [
             {"id": "a", "org_id": "city-x", "name": "A", "kind": "web",

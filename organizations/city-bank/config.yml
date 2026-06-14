@@ -1,7 +1,7 @@
 id: city-bank
 name: "City First Bank"
 kind: finance
-segment: corp
+network_index: 2
 
 description: |
   Городской банк, обслуживает физлиц, бизнес и муниципалитет.
@@ -32,13 +32,13 @@ notes:
 networks:
   - id: city-bank-dmz
     kind: dmz
-    cidr: 10.10.0.0/24
+    cidr: 10.2.0.0/24
   - id: city-bank-lan
     kind: lan
-    cidr: 10.10.128.0/24
+    cidr: 10.2.128.0/24
   - id: city-bank-mgmt
     kind: mgmt
-    cidr: 10.30.0.0/24
+    cidr: 10.2.253.0/24
 
 services:
   - id: bank-web
@@ -47,7 +47,7 @@ services:
     exposure: public
     host: portal.city-bank.corp
     network_id: city-bank-dmz
-    bind_ip: 10.10.0.10
+    bind_ip: 10.2.0.10
     auth: sso
     data_classification: public
     software:
@@ -63,7 +63,7 @@ services:
     exposure: intranet
     host: api.city-bank.corp
     network_id: city-bank-lan
-    bind_ip: 10.10.128.10
+    bind_ip: 10.2.128.10
     auth: mfa
     data_classification: pci
     software:
@@ -79,7 +79,7 @@ services:
     exposure: intranet
     host: idp.city-bank.corp
     network_id: city-bank-lan
-    bind_ip: 10.10.128.11
+    bind_ip: 10.2.128.11
     auth: mfa
     data_classification: restricted
     software:
@@ -95,7 +95,7 @@ services:
     exposure: intranet
     host: db.city-bank.corp
     network_id: city-bank-lan
-    bind_ip: 10.10.128.12
+    bind_ip: 10.2.128.12
     auth: certificate
     data_classification: pci
     software:

@@ -30,10 +30,10 @@ def _minimal_network(**overrides):
                 id="a",
                 name="A",
                 kind="finance",
-                segment="corp",
+                network_index=1,
                 networks=[
-                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.10.1.0/24"),
-                    Network(id="a-lan", org_id="a", kind="lan", cidr="10.10.2.0/24"),
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.1.1.0/24"),
+                    Network(id="a-lan", org_id="a", kind="lan", cidr="10.1.2.0/24"),
                 ],
             )
         ],
@@ -46,7 +46,7 @@ def _minimal_network(**overrides):
                 exposure="public",
                 host="s1.a.corp",
                 network_id="a-dmz",
-                bind_ip="10.10.1.10",
+                bind_ip="10.1.1.10",
             )
         ],
     }
@@ -174,18 +174,18 @@ def test_network_overlap() -> None:
                 id="a",
                 name="A",
                 kind="finance",
-                segment="corp",
+                network_index=1,
                 networks=[
-                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.10.1.0/24")
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.1.1.0/24")
                 ],
             ),
             Organization(
                 id="b",
                 name="B",
                 kind="finance",
-                segment="corp",
+                network_index=1,
                 networks=[
-                    Network(id="b-dmz", org_id="b", kind="dmz", cidr="10.10.1.0/24")
+                    Network(id="b-dmz", org_id="b", kind="dmz", cidr="10.1.1.0/24")
                 ],
             ),
         ],
@@ -198,7 +198,7 @@ def test_network_overlap() -> None:
                 exposure="public",
                 host="s1.a.corp",
                 network_id="a-dmz",
-                bind_ip="10.10.1.10",
+                bind_ip="10.1.1.10",
             ),
             Service(
                 id="s2",
@@ -208,7 +208,7 @@ def test_network_overlap() -> None:
                 exposure="public",
                 host="s2.b.corp",
                 network_id="b-dmz",
-                bind_ip="10.10.1.11",
+                bind_ip="10.1.1.11",
             ),
         ],
     )
@@ -226,18 +226,18 @@ def test_network_overlap_invalid_cidr_ignored() -> None:
                 id="a",
                 name="A",
                 kind="finance",
-                segment="corp",
+                network_index=1,
                 networks=[
-                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.10.1.0/24")
+                    Network(id="a-dmz", org_id="a", kind="dmz", cidr="10.1.1.0/24")
                 ],
             ),
             Organization(
                 id="b",
                 name="B",
                 kind="finance",
-                segment="corp",
+                network_index=2,
                 networks=[
-                    Network(id="b-dmz", org_id="b", kind="dmz", cidr="10.10.2.0/24")
+                    Network(id="b-dmz", org_id="b", kind="dmz", cidr="10.2.2.0/24")
                 ],
             ),
         ]

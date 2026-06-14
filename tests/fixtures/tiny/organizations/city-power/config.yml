@@ -1,10 +1,10 @@
 id: city-power
 name: "City Power & Light"
 kind: infra-utilities
-segment: ot
+network_index: 20
 
 description: |
-  Test fixture: 1 org in ot segment with 1 service and 1 decoy.
+  Test fixture: 1 org with an OT network, 1 service and 1 decoy.
 
 networks:
   - id: city-power-ot

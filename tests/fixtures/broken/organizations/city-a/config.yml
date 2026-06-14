@@ -1,12 +1,12 @@
 id: city-a
 name: "City A"
 kind: finance
-segment: corp
+network_index: 1
 
 networks:
   - id: city-a-dmz
     kind: dmz
-    cidr: 10.10.1.0/24
+    cidr: 10.1.1.0/24
 
 services:
   - id: web
@@ -15,4 +15,4 @@ services:
     exposure: public
     host: a.example
     network_id: city-a-dmz
-    bind_ip: 10.10.1.10
+    bind_ip: 10.1.1.10

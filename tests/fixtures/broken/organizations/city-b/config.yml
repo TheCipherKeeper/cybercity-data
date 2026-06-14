@@ -1,12 +1,12 @@
 id: city-b
 name: "City B"
 kind: finance
-segment: corp
+network_index: 2
 
 networks:
   - id: city-b-dmz
     kind: dmz
-    cidr: 10.10.2.0/24
+    cidr: 10.2.2.0/24
 
 # `web` is a duplicate service id across orgs (city-a also has one) -> ids
 # `web -> ghost` is a dangling link -> refs
@@ -17,7 +17,7 @@ services:
     exposure: public
     host: b.example
     network_id: city-b-dmz
-    bind_ip: 10.10.2.10
+    bind_ip: 10.2.2.10
 
 links:
   - from_service: web

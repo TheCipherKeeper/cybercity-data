@@ -35,7 +35,7 @@ uv run ruff check
 ```
 cybercity-data check [PATH] [--json] [--strict]   # validate only
 cybercity-data build [PATH] [--out DIR] [--json] [--strict]
-cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
+cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 ```
 
 - `--strict` treats warnings as errors.

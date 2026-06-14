@@ -1,7 +1,7 @@
 id: city-pharmacy
 name: "City Pharmacy Chain"
 kind: healthcare
-segment: corp
+network_index: 3
 
 description: |
   Сеть городских аптек. POS-терминалы списывают оплату через bank-api.
@@ -28,13 +28,13 @@ notes:
 networks:
   - id: city-pharmacy-dmz
     kind: dmz
-    cidr: 10.10.2.0/24
+    cidr: 10.3.1.0/24
   - id: city-pharmacy-lan
     kind: lan
-    cidr: 10.10.130.0/24
+    cidr: 10.3.129.0/24
   - id: city-pharmacy-mgmt
     kind: mgmt
-    cidr: 10.30.2.0/24
+    cidr: 10.3.253.0/24
 
 services:
   - id: phar-pos
@@ -43,7 +43,7 @@ services:
     exposure: intranet
     host: pos.city-pharmacy.corp
     network_id: city-pharmacy-lan
-    bind_ip: 10.10.130.10
+    bind_ip: 10.3.129.10
     auth: local
     data_classification: phi
     software:
@@ -59,7 +59,7 @@ services:
     exposure: intranet
     host: idp.city-pharmacy.corp
     network_id: city-pharmacy-lan
-    bind_ip: 10.10.130.11
+    bind_ip: 10.3.129.11
     auth: sso
     data_classification: restricted
     software:
@@ -75,7 +75,7 @@ services:
     exposure: intranet
     host: db.city-pharmacy.corp
     network_id: city-pharmacy-lan
-    bind_ip: 10.10.130.12
+    bind_ip: 10.3.129.12
     auth: certificate
     data_classification: phi
     software:

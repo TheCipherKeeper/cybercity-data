@@ -3,7 +3,7 @@
 Commands:
     cybercity-data check [PATH] [--json] [--strict]
     cybercity-data build [PATH] [--out DIR] [--json] [--strict]
-    cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
+    cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 
 Exit codes:
     0 — OK
@@ -260,9 +260,9 @@ def init_cmd(
         str,
         typer.Option("--kind", help="Organization kind (e.g. healthcare, finance)."),
     ],
-    segment: Annotated[
-        str,
-        typer.Option("--segment", help="Segment: corp | ot | mgmt | public."),
+    network_index: Annotated[
+        int,
+        typer.Option("--network-index", help="City-wide unique second octet (1-255)."),
     ],
     path: Annotated[
         Path,
@@ -290,15 +290,15 @@ def init_cmd(
         f"id: {org_id}\n"
         f'name: "{name}"\n'
         f"kind: {kind}\n"
-        f"segment: {segment}\n"
+        f"network_index: {network_index}\n"
         "\n"
         "description: |\n"
-        "  Опиши роль организации, типичные сервисы и известные слабости.\n"
+        "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
         "\n"
         "services: []\n"
         "links: []\n"
+        "networks: []\n"
     )
-    content += "networks: []\n"
     config_path.write_text(content, encoding="utf-8")
     typer.echo(f"Created {config_path}")
 

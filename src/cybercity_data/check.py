@@ -59,10 +59,12 @@ class NetworkChecker:
         return Report(
             issues=[
                 *self._ids(network),
+                *self._network_index(network),
                 *self._refs(network),
                 *self._network_belongs(network),
                 *self._ip_in_network(network),
                 *self._network_overlap(network),
+                *self._city_ip_scheme(network),
                 *self._exposure_network(network),
                 *self._self_loop(network),
                 *self._software(network),
@@ -106,6 +108,29 @@ class NetworkChecker:
                         ),
                     )
                 )
+        return out
+
+    # ─────────────────────────────────────────────────────────────────
+    # network-index
+    # ─────────────────────────────────────────────────────────────────
+    def _network_index(self, network: CityNetwork) -> list[Issue]:
+        out: list[Issue] = []
+        indices: dict[int, str] = {}
+        for i, org in enumerate(network.organizations):
+            if org.network_index in indices:
+                out.append(
+                    Issue(
+                        code="network-index",
+                        path=f"organizations[{i}].network_index",
+                        level="error",
+                        message=(
+                            f"organization {org.id!r} reuses network_index "
+                            f"{org.network_index} with {indices[org.network_index]!r}"
+                        ),
+                    )
+                )
+            else:
+                indices[org.network_index] = org.id
         return out
 
     # ─────────────────────────────────────────────────────────────────
@@ -223,6 +248,29 @@ class NetworkChecker:
                         ),
                     )
                 )
+        return out
+
+    # ─────────────────────────────────────────────────────────────────
+    # city-ip-scheme
+    # ─────────────────────────────────────────────────────────────────
+    def _city_ip_scheme(self, network: CityNetwork) -> list[Issue]:
+        """Validate that org networks live under 10.<network_index>.x.x."""
+        out: list[Issue] = []
+        for i, org in enumerate(network.organizations):
+            prefix = f"10.{org.network_index}."
+            for j, net in enumerate(org.networks):
+                if not net.cidr.startswith(prefix):
+                    out.append(
+                        Issue(
+                            code="city-ip-scheme",
+                            path=f"organizations[{i}].networks[{j}].cidr",
+                            level="error",
+                            message=(
+                                f"network {net.id!r} cidr {net.cidr!r} does not start "
+                                f"with expected prefix {prefix!r} for org {org.id!r}"
+                            ),
+                        )
+                    )
         return out
 
     # ─────────────────────────────────────────────────────────────────

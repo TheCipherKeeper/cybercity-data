@@ -79,8 +79,8 @@ class Builder:
     def _build_topology(self) -> str:
         import json
 
-        org_segment = {o.id: o.segment for o in self.network.organizations}
         org_name = {o.id: o.name for o in self.network.organizations}
+        org_index = {o.id: o.network_index for o in self.network.organizations}
 
         nodes: list[dict[str, Any]] = []
         for s in sorted(self.network.services, key=lambda x: x.id):
@@ -90,7 +90,7 @@ class Builder:
                     "kind": s.kind,
                     "org_id": s.org_id,
                     "org_name": org_name.get(s.org_id, ""),
-                    "segment": org_segment.get(s.org_id, ""),
+                    "network_index": org_index.get(s.org_id, 0),
                     "network_id": s.network_id,
                     "bind_ip": s.bind_ip,
                     "exposure": s.exposure,
@@ -193,7 +193,7 @@ class Builder:
         parts.append("## Организации")
         parts.append("")
         parts.append(
-            "| id | name | kind | segment | networks | services | tags | regulated |"
+            "| id | name | kind | network_index | networks | services | tags | regulated |"
         )
         parts.append("|---|---|---|---|---|---|---|---|")
         svc_count_by_org = Counter(s.org_id for s in self.network.services)
@@ -201,7 +201,7 @@ class Builder:
             tags = ", ".join(o.tags) if o.tags else ""
             regulated = ", ".join(o.regulated) if o.regulated else ""
             parts.append(
-                f"| `{o.id}` | {o.name} | {o.kind} | {o.segment} | "
+                f"| `{o.id}` | {o.name} | {o.kind} | {o.network_index} | "
                 f"{len(o.networks)} | {svc_count_by_org.get(o.id, 0)} | "
                 f"{tags} | {regulated} |"
             )

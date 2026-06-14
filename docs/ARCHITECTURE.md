@@ -57,7 +57,7 @@ cybercity-data/
 ### `Organization`
 
 ```
-id, name, kind, segment
+id, name, kind, network_index      # 1-255, city-wide unique second octet
 description, third_party[], notes, tags[], regulated[]
 headcount_estimate
 networks[]                       # REQUIRED in v2.0
@@ -102,7 +102,7 @@ organizations[], services[], links[]
 ```bash
 cybercity-data check [PATH] [--json] [--strict]   # validate only
 cybercity-data build [PATH] [--out DIR] [--json] [--strict]
-cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
+cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
 ```
 
 - `check` — validate only.
@@ -119,6 +119,7 @@ cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 | `network-belongs` | error | service.network_id exists and belongs to the same org |
 | `ip-in-network` | error | bind_ip lies inside service network CIDR |
 | `network-overlap` | error | networks do not overlap |
+| `city-ip-scheme` | error | every org CIDR lives under `10.<network_index>.x.x` |
 | `exposure-network` | error | exposure allowed on network kind |
 | `self-loop` | error | link does not point to itself |
 | `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |
