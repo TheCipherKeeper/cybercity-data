@@ -54,6 +54,7 @@ class Result:
     error: str | None = None
     rendered: list[Path] | None = None
     render_skipped: str | None = None
+    network: CityNetwork | None = None
 
     @property
     def exit_code(self) -> int:
@@ -139,6 +140,7 @@ def _run_check(path: Path, strict: bool) -> Result:
         services=len(network.services),
         links=len(network.links),
     )
+    result.network = network
     return result
 
 
@@ -156,7 +158,9 @@ def _run_build(path: Path, out: Path, strict: bool) -> Result:
         return result
 
     try:
-        network, _ = _load(path)
+        network = result.network
+        if network is None:  # pragma: no cover - defensive guard
+            raise RuntimeError("network missing after successful check")
         target = (path / out).resolve()
         rendered = Builder(network).render(target)
         result.rendered = rendered

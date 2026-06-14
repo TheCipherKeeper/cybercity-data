@@ -13,15 +13,14 @@ from __future__ import annotations
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, get_args
+from typing import Any
 
 from .check import TARGET_ORGS, TARGET_SERVICES
-from .models import CityNetwork, OrgKind, Segment
+from .models import CityNetwork, OrgKind
 
 __all__ = ["Builder", "build_artifacts"]
 
 
-_SEGMENT_ORDER: tuple[Segment, ...] = ("corp", "ot", "mgmt", "public")
 _KIND_ORDER: tuple[OrgKind, ...] = (
     "government",
     "healthcare",
@@ -32,11 +31,6 @@ _KIND_ORDER: tuple[OrgKind, ...] = (
     "education",
     "msp",
 )
-
-
-def _all_kinds() -> tuple[OrgKind, ...]:
-    extras = tuple(k for k in get_args(OrgKind) if k not in _KIND_ORDER)
-    return _KIND_ORDER + extras
 
 
 class Builder:
@@ -227,7 +221,7 @@ class Builder:
         by_kind: Counter[str] = Counter(o.kind for o in self.network.organizations)
         parts.append("| Блок | Организаций |")
         parts.append("|---|---|")
-        for kind in _all_kinds():
+        for kind in _KIND_ORDER:
             parts.append(f"| {kind} | {by_kind.get(kind, 0)} |")
         parts.append(f"| **Итого** | **{n_orgs}** |")
         parts.append("")

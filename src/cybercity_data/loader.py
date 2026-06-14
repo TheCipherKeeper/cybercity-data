@@ -36,12 +36,12 @@ _DEFAULT_NETWORK_KINDS: dict[str, list[NetworkKind]] = {
     "public": ["internet"],
 }
 
-# Network kind → default exposure mapping (used when inferring network_id).
-_EXPOSURE_TO_KIND: dict[str, NetworkKind] = {
-    "public": "dmz",
-    "intranet": "lan",
-    "ot": "ot",
-    "mgmt": "mgmt",
+# Exposure → candidate network kinds in priority order (used when inferring network_id).
+_EXPOSURE_TO_KIND: dict[str, tuple[NetworkKind, ...]] = {
+    "public": ("dmz", "internet"),
+    "intranet": ("lan",),
+    "ot": ("ot",),
+    "mgmt": ("mgmt",),
 }
 
 
@@ -252,11 +252,12 @@ class NetworkLoader:
         out: list[Service] = []
         for svc in services:
             if svc.network_id is None:
-                kind = _EXPOSURE_TO_KIND.get(svc.exposure)
-                if kind is None:
+                kinds = _EXPOSURE_TO_KIND.get(svc.exposure)
+                if not kinds:
                     out.append(svc)
                     continue
-                net_id = org_networks.get(svc.org_id, {}).get(kind)
+                nets = org_networks.get(svc.org_id, {})
+                net_id = next((nets[k] for k in kinds if k in nets), None)
                 if net_id is None:
                     out.append(svc)
                     continue

@@ -9,7 +9,7 @@ Schema goals for v1.0:
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -149,7 +149,7 @@ Regulation = Literal["hipaa", "pci-dss", "gdpr", "nerc-cip", "sox", "ferpa"]
 # ─────────────────────────────────────────────────────────────────────
 _KEBAB = r"^[a-z][a-z0-9-]*$"
 _SEMVER = r"^\d+\.\d+\.\d+$"
-_PORT = r"^(tcp|udp)/\d{1,5}$"
+_PORT = r"^(tcp|udp)/(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3})$"
 _FQDN = r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"
 _CIDR = r"^\d{1,3}(\.\d{1,3}){3}/\d{1,2}$"
 _IPV4 = r"^\d{1,3}(\.\d{1,3}){3}$"
@@ -263,7 +263,7 @@ class Service(_StrictModel):
     software: Software | None = None
     auth: AuthMethod = "local"
     data_classification: DataClassification = "internal"
-    ports: list[str] = Field(default_factory=list)
+    ports: list[Annotated[str, Field(pattern=_PORT)]] = Field(default_factory=list)
     owner_team: str | None = None
     known_weakness: WeaknessKind | None = None
     decoy: DecoyBlock | None = None

@@ -24,9 +24,13 @@ uv run ruff check
 ## CLI
 
 ```
-cybercity-data check [PATH] [--json]   # validate only
-cybercity-data build [PATH] [--out DIR] [--json]
+cybercity-data check [PATH] [--json] [--strict]   # validate only
+cybercity-data build [PATH] [--out DIR] [--json] [--strict]
+cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 ```
+
+- `--strict` treats warnings as errors (useful near v1.0).
+- `init` scaffolds a new organization under `organizations/<ID>/`.
 
 ## License
 

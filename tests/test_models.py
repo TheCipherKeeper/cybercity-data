@@ -140,3 +140,49 @@ def test_cve_id_pattern() -> None:
     }
     with pytest.raises(ValidationError):
         CityNetwork.model_validate(raw)
+
+
+def test_service_ports_pattern() -> None:
+    raw = {
+        "version": "1.0.0",
+        "meta": _meta(),
+        "organizations": [
+            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+        ],
+        "services": [
+            {
+                "id": "svc",
+                "org_id": "city-x",
+                "name": "S",
+                "kind": "web",
+                "exposure": "public",
+                "host": "s.example",
+                "ports": ["tcp/70000"],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        CityNetwork.model_validate(raw)
+
+
+def test_service_ports_accepts_valid() -> None:
+    raw = {
+        "version": "1.0.0",
+        "meta": _meta(),
+        "organizations": [
+            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+        ],
+        "services": [
+            {
+                "id": "svc",
+                "org_id": "city-x",
+                "name": "S",
+                "kind": "web",
+                "exposure": "public",
+                "host": "s.example",
+                "ports": ["tcp/443", "udp/53"],
+            }
+        ],
+    }
+    network = CityNetwork.model_validate(raw)
+    assert network.services[0].ports == ["tcp/443", "udp/53"]

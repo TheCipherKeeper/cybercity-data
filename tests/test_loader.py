@@ -483,6 +483,42 @@ def test_load_bind_ip_without_network_is_skipped(tmp_path: Path) -> None:
     assert svc.bind_ip == "10.10.99.10"
 
 
+def test_public_segment_exposure_uses_internet_fallback(tmp_path: Path) -> None:
+    """For segment: public orgs, public exposure should map to internet network."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "city.yml").write_text(
+        'version: "1.0.0"\n'
+        "meta:\n"
+        "  city: x\n"
+        "  allocation:\n"
+        "    corp: 10.10.0.0/16\n"
+        "    ot: 10.20.0.0/16\n"
+        "    mgmt: 10.30.0.0/16\n"
+        "    internet: 203.0.113.0/24\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "organizations" / "city-public").mkdir()
+    (tmp_path / "organizations" / "city-public" / "config.yml").write_text(
+        "id: city-public\n"
+        "name: Public Agency\n"
+        "kind: government\n"
+        "segment: public\n"
+        "services:\n"
+        "  - id: pub-web\n"
+        "    name: Public web\n"
+        "    kind: web\n"
+        "    exposure: public\n"
+        "    host: pub.example\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    assert not issues, [i.message for i in issues]
+    svc = network.services[0]
+    assert svc.network_id == "city-public-internet"
+    assert svc.bind_ip is not None
+    assert svc.bind_ip.startswith("203.0.113.")
+
+
 def test_allocate_cidr_unknown_kind() -> None:
     from cybercity_data.loader import _allocate_cidr
     from cybercity_data.models import Allocation
