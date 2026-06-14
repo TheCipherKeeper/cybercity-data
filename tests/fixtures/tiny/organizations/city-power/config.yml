@@ -37,5 +37,6 @@ services:
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
-      fingerprint: default-creds
+      fingerprint: realistic
       os_hint: linux-embedded
+      note: "mock IoT endpoint"

@@ -6,7 +6,7 @@ segment: corp
 description: |
   Сеть городских аптек. POS-терминалы списывают оплату через bank-api.
   Хранит рецепты и историю покупок (phar-db) - данные под защитой
-  healthcare-профиля (PHI), даже если этот репо не моделирует полную HIPAA-схему.
+  healthcare-профиля.
 
 third_party:
   - name: City First Bank
@@ -21,9 +21,9 @@ regulated:
   - hipaa
 
 notes:
-  - "phar-pos - типичная точка входа через слабый пароль кассира"
-  - "phar-db содержит рецепты - lateral target от POS"
-  - "phar-idp в этой итерации изолирован (нет внешних trusts)"
+  - "phar-pos - POS-терминалы в аптеках"
+  - "phar-db - рецепты и история покупок"
+  - "phar-idp - локальный SSO аптек"
 
 networks:
   - id: city-pharmacy-dmz
@@ -52,7 +52,6 @@ services:
       version: "5.0"
     ports: [tcp/443]
     owner_team: retail-ops
-    known_weakness: default-creds
 
   - id: phar-idp
     name: "Pharmacy SSO"
@@ -93,4 +92,31 @@ links:
     protocol: tcp/443
     encryption: tls
     label: "card-present payment authorisation"
-    attack_chain: ["scn-04"]
+
+  - from_service: phar-pos
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "POS DNS resolution"
+
+  - from_service: phar-idp
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "idp DNS resolution"
+
+  - from_service: phar-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "pharmacy db logs"
+
+  - from_service: phar-pos
+    to_service: phar-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "POS reads prescription db"

@@ -1,6 +1,6 @@
 # CyberCity — Data Architecture
 
-> **TL;DR.** `cybercity-data` — canonical declarative data layer for the CyberCity cyber-range:
+> **TL;DR.** `cybercity-data` — canonical declarative data layer for the CyberCity digital twin:
 > organizations, networks, services, links. `check` validates; `build` writes artifacts.
 
 - [README](../README.md)
@@ -12,10 +12,11 @@
 | Слой | Репозиторий | Роль |
 |---|---|---|
 | Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder |
-| Сценарии | `cybercity-scenarios` | playbooks атак, ссылаются на `attack_chain` в Link |
+| Симуляция | `cybercity-simulator` | запускает модель, эмулирует трафик и события |
 | UI | `cybercity-ui` | рисует граф из `build/topology.json` |
 | Агенты | `cybercity-agents` | LLM-генератор недостающих org'ов |
 | Blueprints | `cybercity-blueprints` | шаблоны организаций |
+| Сценарии / безопасность | `cybercity-scenarios` | внешний слой, потребляет эту модель |
 
 ## Repository layout
 
@@ -48,8 +49,7 @@ cybercity-data/
     ├── network.json             # canonical full dump
     ├── network.md               # human-readable projection
     ├── schema.json              # JSON Schema
-    ├── topology.json            # graph for UI
-    └── attack-surface.json      # public weak services
+    └── topology.json            # graph for UI / simulator
 ```
 
 ## Data model (v2.0)
@@ -79,15 +79,15 @@ id, org_id, name, kind, exposure, host
 network_id, bind_ip              # REQUIRED in v2.0
 software {vendor, product, version?, cve_id?}
 auth, data_classification
-ports, owner_team, known_weakness
-decoy {kind, fingerprint, os_hint, note}   # optional honeypot
+ports, owner_team
+decoy {kind, fingerprint, os_hint, note}   # optional mock service
 ```
 
 ### `Link`
 
 ```
 from_service, to_service, kind, protocol?
-encryption, bidirectional, label, attack_chain[]
+encryption, bidirectional, label
 ```
 
 ### `CityNetwork`
@@ -121,10 +121,7 @@ cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 | `network-overlap` | error | networks do not overlap |
 | `exposure-network` | error | exposure allowed on network kind |
 | `self-loop` | error | link does not point to itself |
-| `software` | error | cve_id matches `CVE-YYYY-NNNNN` |
-| `link-encryption` | warning | public service reached over unencrypted link |
-| `posture` | warning | public service with weak auth or known weakness |
-| `quota` | warning | v2.0 targets: 30 orgs, 95 services |
+| `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |
 
 ## ADR
 
@@ -133,11 +130,11 @@ cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 | ADR-0001 | Per-org layout; loader builds in-memory `CityNetwork` |
 | ADR-0002 | Pydantic v2, `extra="forbid"` |
 | ADR-0003 | Explicit networks and IP addresses in v2.0 |
-| ADR-0004 | `Service.decoy` replaces standalone `Decoy` entity |
+| ADR-0004 | `Service.decoy` marks simulation-only mock services |
 | ADR-0005 | `org_id` injected by loader, not repeated in YAML |
 | ADR-0006 | CLI: `check`, `build`, `init`; exit codes 0/1 |
-| ADR-0007 | Build artifacts: `network.json`, `network.md`, `schema.json`, `topology.json`, `attack-surface.json` |
-| ADR-0008 | `--strict` makes warnings fail CI near v1.0 |
+| ADR-0007 | Build artifacts: `network.json`, `network.md`, `schema.json`, `topology.json` |
+| ADR-0008 | `--strict` makes warnings fail CI |
 | ADR-0009 | `CityNetwork` version is a code constant (`SCHEMA_VERSION`); no city-wide allocation file |
 
 ## License

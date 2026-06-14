@@ -28,7 +28,6 @@ from .models import (
     Software,
     SvcKind,
     ThirdParty,
-    WeaknessKind,
 )
 
 __version__ = "0.4.0"
@@ -56,7 +55,6 @@ __all__ = [
     "Software",
     "SvcKind",
     "ThirdParty",
-    "WeaknessKind",
     # Pipeline
     "Issue",
     "Report",

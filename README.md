@@ -4,8 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/code-MIT-green)](LICENSE)
 [![Docs: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey)](docs/LICENSE-DOCS)
 
-Canonical declarative data layer for the CyberCity cyber-range:
+Canonical declarative data layer for the CyberCity digital twin:
 organizations, networks, services, links.
+
+This repository models the IT/OT infrastructure of an abstract city.
+Security scenarios, vulnerabilities, pentesting playbooks and honeypots live in
+separate repositories; here we keep the neutral city model that other tools
+consume.
 
 In v2.0 everything is explicit: each organization declares its own networks,
 IP addresses, and service placement. The validator catches missing or
@@ -33,8 +38,17 @@ cybercity-data build [PATH] [--out DIR] [--json] [--strict]
 cybercity-data init ID --kind KIND --segment SEGMENT [--path PATH]
 ```
 
-- `--strict` treats warnings as errors (useful near v1.0).
+- `--strict` treats warnings as errors.
 - `init` scaffolds a new organization under `organizations/<ID>/`.
+
+## Artifacts
+
+`cybercity-data build` produces:
+
+- `build/network.json` — canonical machine-readable dump
+- `build/network.md` — human-readable projection
+- `build/schema.json` — JSON Schema for downstream validation
+- `build/topology.json` — graph of services and links for UI/simulation
 
 ## License
 

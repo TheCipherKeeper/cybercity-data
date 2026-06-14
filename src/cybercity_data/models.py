@@ -1,9 +1,9 @@
-"""Pydantic models for the cybercity network model.
+"""Pydantic models for the CyberCity digital-twin network model.
 
-Schema goals for v2.0 (explicit-only):
+Schema goals for v2.0:
   * Everything is declared: networks, IP addresses, and service placement.
   * org_id is still injected by the loader to avoid repeating it in every service.
-  * Decoys are services with a `decoy` block; their honeypot role is separate from service kind.
+  * Mock services (`decoy` block) are ordinary services marked as simulation-only.
   * `extra="forbid"` keeps typos loud.
 """
 
@@ -26,7 +26,6 @@ __all__ = [
     "LinkEncryption",
     "DecoyKind",
     "DecoyFingerprint",
-    "WeaknessKind",
     "Regulation",
     "Network",
     "ThirdParty",
@@ -111,8 +110,6 @@ LinkKind = Literal[
     "lateral",
     "m2m",
     "vendor-vpn",
-    "phishing-source",
-    "watering-hole",
 ]
 
 LinkEncryption = Literal["none", "tls", "mtls", "ipsec", "sso-trust"]
@@ -133,17 +130,6 @@ DecoyFingerprint = Literal[
     "default-creds",
     "known-cve",
     "decoy-banner",
-]
-
-WeaknessKind = Literal[
-    "default-creds",
-    "unpatched",
-    "exposed-internet",
-    "missing-mfa",
-    "ot-flat-network",
-    "supply-chain",
-    "stale-account",
-    "open-share",
 ]
 
 Regulation = Literal["hipaa", "pci-dss", "gdpr", "nerc-cip", "sox", "ferpa"]
@@ -204,7 +190,7 @@ class ThirdParty(_StrictModel):
 
 
 class DecoyBlock(_StrictModel):
-    """Turns an ordinary Service into a decoy / honeypot."""
+    """Marks a service as a simulation-only / mock service."""
 
     kind: DecoyKind = "http"
     fingerprint: DecoyFingerprint = "realistic"
@@ -252,7 +238,6 @@ class Service(_StrictModel):
     data_classification: DataClassification = "internal"
     ports: list[Annotated[str, Field(pattern=_PORT)]] = Field(default_factory=list)
     owner_team: str | None = None
-    known_weakness: WeaknessKind | None = None
     decoy: DecoyBlock | None = None
 
 
@@ -268,7 +253,6 @@ class Link(_StrictModel):
     encryption: LinkEncryption = "tls"
     bidirectional: bool = False
     label: str | None = None
-    attack_chain: list[str] = []
 
 
 # ─────────────────────────────────────────────────────────────────────

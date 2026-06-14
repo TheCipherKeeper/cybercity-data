@@ -109,6 +109,7 @@ def test_check_json_shape_on_tiny(tiny_path: Path) -> None:
         "links": 1,
     }
     assert data["errors"] == []
+    assert data["warnings"] == []
 
 
 def test_build_creates_artifacts(tiny_path: Path, tmp_path: Path) -> None:
@@ -119,7 +120,7 @@ def test_build_creates_artifacts(tiny_path: Path, tmp_path: Path) -> None:
     assert (out / "network.md").exists()
     assert (out / "schema.json").exists()
     assert (out / "topology.json").exists()
-    assert (out / "attack-surface.json").exists()
+    assert not (out / "attack-surface.json").exists()
 
 
 def test_build_skipped_on_errors(tmp_path: Path) -> None:
@@ -128,12 +129,6 @@ def test_build_skipped_on_errors(tmp_path: Path) -> None:
     result = runner.invoke(app, ["build", str(tmp_path), "--out", str(out)])
     assert result.exit_code == 1
     assert not (out / "network.json").exists()
-
-
-def test_strict_mode_fails_on_warnings(tiny_path: Path) -> None:
-    result = runner.invoke(app, ["check", str(tiny_path), "--strict"])
-    assert result.exit_code == 1, result.output
-    assert "quota" in result.output
 
 
 def test_init_creates_org(tiny_path: Path, tmp_path: Path) -> None:
@@ -177,23 +172,28 @@ def test_check_exits_1_on_bad_yaml(tmp_path: Path) -> None:
     assert result.exit_code == 1
 
 
-def test_build_strict_skips_on_warnings(tiny_path: Path, tmp_path: Path) -> None:
+def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
+    """Bad organization kind -> loader/schema error -> exit 1."""
+    _make_minimal_repo(tmp_path)
+    _write(
+        tmp_path / "organizations" / "city-x" / "config.yml",
+        "id: city-x\nname: X\nkind: not-a-kind\nsegment: corp\nnetworks: []\nservices: []\n",
+    )
+    result = runner.invoke(app, ["check", str(tmp_path)])
+    assert result.exit_code == 1
+    assert "L002" in result.output
+
+
+def test_check_json_includes_rendered_paths(tiny_path: Path, tmp_path: Path) -> None:
     out = tmp_path / "out"
     result = runner.invoke(
-        app, ["build", str(tiny_path), "--out", str(out), "--strict"]
+        app, ["build", str(tiny_path), "--out", str(out), "--json"]
     )
-    assert result.exit_code == 1, result.output
-    assert not (out / "network.json").exists()
-
-
-def test_build_strict_json_includes_render_skipped(tiny_path: Path) -> None:
-    result = runner.invoke(
-        app, ["build", str(tiny_path), "--json", "--strict"]
-    )
-    assert result.exit_code == 1
+    assert result.exit_code == 0
     data = json.loads(result.output)
-    assert data["ok"] is False
-    assert "render_skipped" in data
+    assert data["ok"] is True
+    assert "rendered" in data
+    assert any(str(out) in p for p in data["rendered"])
 
 
 def test_init_fails_without_organizations(tmp_path: Path) -> None:
@@ -230,30 +230,6 @@ def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 1
-
-
-def test_check_json_includes_rendered_paths(tiny_path: Path, tmp_path: Path) -> None:
-    out = tmp_path / "out"
-    result = runner.invoke(
-        app, ["build", str(tiny_path), "--out", str(out), "--json"]
-    )
-    assert result.exit_code == 0
-    data = json.loads(result.output)
-    assert data["ok"] is True
-    assert "rendered" in data
-    assert any(str(out) in p for p in data["rendered"])
-
-
-def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
-    """Bad organization kind -> loader/schema error -> exit 1."""
-    _make_minimal_repo(tmp_path)
-    _write(
-        tmp_path / "organizations" / "city-x" / "config.yml",
-        "id: city-x\nname: X\nkind: not-a-kind\nsegment: corp\nnetworks: []\nservices: []\n",
-    )
-    result = runner.invoke(app, ["check", str(tmp_path)])
-    assert result.exit_code == 1
-    assert "L002" in result.output
 
 
 def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:

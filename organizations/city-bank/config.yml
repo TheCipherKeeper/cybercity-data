@@ -25,9 +25,9 @@ regulated:
   - sox
 
 notes:
-  - "bank-db никогда не торчит наружу - даже api-call идёт через bank-api"
-  - "bank-idp - главная цель credential stuffing в сценариях"
-  - "portal.city-bank.corp - публичный web, частый entry point"
+  - "bank-db не торчит наружу - api-call идёт через bank-api"
+  - "bank-idp - федеративный SSO для муниципалитета"
+  - "portal.city-bank.corp - публичный web портал"
 
 networks:
   - id: city-bank-dmz
@@ -104,3 +104,39 @@ services:
       version: "19.0.0.0"
     ports: [tcp/1521]
     owner_team: dba
+
+links:
+  - from_service: bank-web
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "portal DNS resolution"
+
+  - from_service: bank-api
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "api DNS resolution"
+
+  - from_service: bank-api
+    to_service: bank-db
+    kind: db-read
+    protocol: tcp/1521
+    encryption: tls
+    label: "payments read core ledger"
+
+  - from_service: bank-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "db audit logs"
+
+  - from_service: bank-web
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "web audit logs"

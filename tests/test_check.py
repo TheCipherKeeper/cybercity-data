@@ -57,7 +57,7 @@ def _minimal_network(**overrides):
 def test_tiny_passes(tiny_network: CityNetwork) -> None:
     report = check(tiny_network)
     assert not report.has_errors, [i.message for i in report.errors]
-    assert any(i.code == "quota" for i in report.warnings)
+    assert not report.warnings
 
 
 def test_ids_duplicate_org_id(tiny_network: CityNetwork) -> None:
@@ -300,90 +300,3 @@ def test_software_cve_format(tiny_network: CityNetwork) -> None:
     )
     report = check(bad)
     assert any(i.code == "software" for i in report.errors)
-
-
-def test_link_encryption_public(tiny_network: CityNetwork) -> None:
-    from cybercity_data.models import Link
-
-    public_svc = next(s for s in tiny_network.services if s.exposure == "public")
-    bad = _mutate(
-        tiny_network,
-        links=[
-            Link(
-                from_service=public_svc.id,
-                to_service=public_svc.id + "-other",
-                kind="api-call",
-                encryption="none",
-            )
-        ],
-    )
-    report = check(bad)
-    assert any(i.code == "link-encryption" for i in report.warnings)
-
-
-def test_link_encryption_public_self_loop(tiny_network: CityNetwork) -> None:
-    from cybercity_data.models import Link
-
-    public_svc = next(s for s in tiny_network.services if s.exposure == "public")
-    bad = _mutate(
-        tiny_network,
-        links=[
-            Link(
-                from_service=public_svc.id,
-                to_service=public_svc.id,
-                kind="api-call",
-                encryption="none",
-            )
-        ],
-    )
-    report = check(bad)
-    assert any(
-        i.code == "link-encryption" and "unencrypted link" in i.message
-        for i in report.warnings
-    )
-
-
-def test_quota_warning(tiny_network: CityNetwork) -> None:
-    report = check(tiny_network)
-    quota = [i for i in report.issues if i.code == "quota"]
-    assert quota and all(i.level == "warning" for i in quota)
-
-
-def test_posture_public_with_known_weakness(tiny_network: CityNetwork) -> None:
-    public_svc = next(s for s in tiny_network.services if s.exposure == "public")
-    bad = _mutate(
-        tiny_network,
-        services=[
-            public_svc.model_copy(
-                update={"auth": "sso", "known_weakness": "unpatched"}
-            )
-        ],
-    )
-    report = check(bad)
-    assert any(
-        i.code == "posture" and "unpatched" in i.message
-        for i in report.warnings
-    )
-
-
-def test_posture_skips_public_decoy(tiny_network: CityNetwork) -> None:
-    """A public-facing decoy must not trigger posture warning."""
-    from cybercity_data.models import Service
-
-    decoy = Service(
-        id="public-decoy",
-        org_id="city-hospital",
-        name="Public decoy",
-        kind="web",
-        exposure="public",
-        host="decoy.example",
-        network_id="city-hospital-dmz",
-        bind_ip="10.10.10.15",
-        decoy={"kind": "http", "fingerprint": "realistic"},
-    )
-    bad = tiny_network.model_copy(
-        update={"services": [*tiny_network.services, decoy]}
-    )
-    report = check(bad)
-    # The new service is at index 4 in the augmented list.
-    assert not any(i.path == "services[4]" for i in report.warnings)

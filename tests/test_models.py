@@ -162,3 +162,52 @@ def test_service_ports_accepts_valid() -> None:
 def test_default_version_is_schema_version() -> None:
     network = CityNetwork(organizations=[])
     assert network.version == "2.0.0"
+
+
+def test_known_weakness_rejected() -> None:
+    """known_weakness was removed in the city-simulation refactor."""
+    raw = {
+        "version": "2.0.0",
+        "organizations": [
+            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+        ],
+        "services": [
+            {
+                "id": "svc",
+                "org_id": "city-x",
+                "name": "S",
+                "kind": "web",
+                "exposure": "public",
+                "host": "s.example",
+                "known_weakness": "unpatched",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        CityNetwork.model_validate(raw)
+
+
+def test_attack_chain_rejected() -> None:
+    """attack_chain was removed from links."""
+    raw = {
+        "version": "2.0.0",
+        "organizations": [
+            {"id": "city-x", "name": "X", "kind": "government", "segment": "corp"}
+        ],
+        "services": [
+            {"id": "a", "org_id": "city-x", "name": "A", "kind": "web",
+             "exposure": "public", "host": "a.example"},
+            {"id": "b", "org_id": "city-x", "name": "B", "kind": "web",
+             "exposure": "public", "host": "b.example"},
+        ],
+        "links": [
+            {
+                "from_service": "a",
+                "to_service": "b",
+                "kind": "api-call",
+                "attack_chain": ["scn-01"],
+            }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        CityNetwork.model_validate(raw)

@@ -35,7 +35,7 @@ segment: corp                # corp | ot | mgmt | public
 
 # Краткое описание.
 description: |
-  Опиши в 2-4 строках роль, типичные сервисы и известные слабости.
+  Опиши в 2-4 строках роль, типичные сервисы и связи с другими org.
 
 # Вендоры / MSP / 3rd-party.
 third_party:
@@ -46,7 +46,7 @@ third_party:
 # Заметки для агентов и сценариев (не валидируются).
 notes:
   - "OCS Inventory публично отдаёт hostname всех АРМ"
-  - "Слабый пароль на POS-кассе №3 - entry point в сценарии 04"
+  - "POS-касса №3 - точка интеграции с банком"
 
 # Сети организации (ОБЯЗАТЕЛЬНЫ в v2.0).
 # Loader не выделяет IP-диапазоны автоматически.
@@ -82,29 +82,30 @@ services:
       version: "1.24.0"
     ports: [tcp/443, tcp/80]
 
-  # Decoy-хост — это обычный сервис с блоком decoy.
-  - id: decoy-printer-01
-    name: "Decoy printer"
+  # Имитационный сервис (массовка для симуляции).
+  - id: mock-printer-01
+    name: "Mock printer"
     kind: iot
     exposure: intranet
-    host: decoy-printer-01.city-hospital.corp
+    host: mock-printer-01.city-hospital.corp
     network_id: city-hospital-lan
     bind_ip: 10.10.11.15
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
-      fingerprint: default-creds
+      fingerprint: realistic
       os_hint: linux-embedded
+      note: "simulation-only endpoint"
 
 # Связи, в которых ЭТА организация - источник.
 links:
   - from_service: hosp-web
     to_service: external-idp
     kind: auth                 # api-call | auth | db-read | db-write | log-sink |
-                               # backup-of | trusts | lateral | m2m | vendor-vpn |
-                               # phishing-source | watering-hole
+                               # backup-of | trusts | lateral | m2m | vendor-vpn
     protocol: tcp/443
     encryption: tls
+    label: "federated authentication"
 ```
 
 ## Соглашения
@@ -114,7 +115,8 @@ links:
 - **`services[].org_id` не пишется.** Loader подставляет автоматически.
 - **`networks` обязательны.** Loader не создаёт сети и не назначает IP.
 - **`services[].network_id` и `services[].bind_ip` обязательны.** Валидатор поймает ошибки.
+- **`decoy` — имитационный сервис.** Используется для плотности симуляции, не связан с security-слоем.
 - **links живут в папке from-организации.**
 - **Уникальность `(from, to, kind)`** для link'ов.
 - **Underscore-папки игнорируются.** `_archive/`, `_draft/`, `_wip/`.
-- **Сценарии** — в соседнем репозитории `cybercity-scenarios`.
+- **Сценарии и уязвимости** — в соседних репозиториях, потребляют эту модель.

@@ -4,7 +4,8 @@ kind: infra-utilities
 segment: ot
 
 description: |
-  Test fixture: 1 org in ot segment with 1 service and 1 decoy.
+  Городская энергетическая компания. SCADA-шлюз управляет подстанциями.
+  Имитационный принтер в сети OT используется для наполнения симуляции.
 
 networks:
   - id: city-power-ot
@@ -31,7 +32,7 @@ services:
     ports: [tcp/102]
 
   - id: decoy-printer-01
-    name: "Decoy printer"
+    name: "Mock OT printer"
     kind: iot
     exposure: ot
     host: decoy-printer-01.city-power.ot
@@ -40,5 +41,21 @@ services:
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
-      fingerprint: default-creds
+      fingerprint: realistic
       os_hint: linux-embedded
+      note: "mock IoT endpoint for simulation density"
+
+links:
+  - from_service: power-ot
+    to_service: hall-ntp
+    kind: m2m
+    protocol: udp/123
+    encryption: none
+    label: "OT time sync"
+
+  - from_service: decoy-printer-01
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "mock device DNS resolution"

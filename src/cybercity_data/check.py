@@ -1,4 +1,4 @@
-"""Cross-field validation for the cybercity network model.
+"""Cross-field validation for the CyberCity digital-twin network model.
 
 Rules are semantic, never short-circuit, and return a stable `Issue` object.
 v0.3 codes are short words instead of V00n numbers — easier to read in CI.
@@ -49,18 +49,6 @@ class Report:
         return bool(self.errors)
 
 
-# v1.0 targets.
-TARGET_ORGS = 30
-TARGET_SERVICES = 95
-
-# What exposure each network kind may carry.
-_KIND_FOR_EXPOSURE: dict[str, set[str]] = {
-    "public": {"dmz", "internet"},
-    "intranet": {"lan"},
-    "ot": {"ot"},
-    "mgmt": {"mgmt"},
-}
-
 _CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,}$")
 
 
@@ -78,9 +66,6 @@ class NetworkChecker:
                 *self._exposure_network(network),
                 *self._self_loop(network),
                 *self._software(network),
-                *self._link_encryption(network),
-                *self._posture(network),
-                *self._quota(network),
             ]
         )
 
@@ -276,14 +261,19 @@ class NetworkChecker:
             for n in org.networks:
                 net_by_id[n.id] = n
 
+        allowed = {
+            "public": {"dmz", "internet"},
+            "intranet": {"lan"},
+            "ot": {"ot"},
+            "mgmt": {"mgmt"},
+        }
         for i, svc in enumerate(network.services):
             if svc.network_id is None:
                 continue
             net = net_by_id.get(svc.network_id)
             if net is None:
                 continue
-            allowed = _KIND_FOR_EXPOSURE.get(svc.exposure, set())
-            if net.kind not in allowed:
+            if net.kind not in allowed.get(svc.exposure, set()):
                 out.append(
                     Issue(
                         code="exposure-network",
@@ -334,86 +324,6 @@ class NetworkChecker:
                         ),
                     )
                 )
-        return out
-
-    # ─────────────────────────────────────────────────────────────────
-    # link-encryption
-    # ─────────────────────────────────────────────────────────────────
-    def _link_encryption(self, network: CityNetwork) -> list[Issue]:
-        out: list[Issue] = []
-        svc_by_id = {s.id: s for s in network.services}
-        for i, link in enumerate(network.links):
-            for endpoint_attr in ("from_service", "to_service"):
-                svc = svc_by_id.get(getattr(link, endpoint_attr))
-                if svc is None:
-                    continue
-                if (
-                    link.encryption == "none"
-                    and svc.exposure == "public"
-                    and not svc.decoy
-                ):
-                    out.append(
-                        Issue(
-                            code="link-encryption",
-                            path=f"links[{i}].encryption",
-                            level="warning",
-                            message=(
-                                f"public service {svc.id!r} is reached over "
-                                f"unencrypted link"
-                            ),
-                        )
-                    )
-        return out
-
-    # ─────────────────────────────────────────────────────────────────
-    # posture
-    # ─────────────────────────────────────────────────────────────────
-    def _posture(self, network: CityNetwork) -> list[Issue]:
-        out: list[Issue] = []
-        for i, svc in enumerate(network.services):
-            if svc.exposure != "public":
-                continue
-            if svc.decoy:
-                continue
-            if svc.known_weakness is not None or svc.auth in ("none", "local"):
-                out.append(
-                    Issue(
-                        code="posture",
-                        path=f"services[{i}]",
-                        level="warning",
-                        message=(
-                            f"public service {svc.id!r} has weak posture "
-                            f"(auth={svc.auth!r}, weakness={svc.known_weakness!r})"
-                        ),
-                    )
-                )
-        return out
-
-    # ─────────────────────────────────────────────────────────────────
-    # quota
-    # ─────────────────────────────────────────────────────────────────
-    def _quota(self, network: CityNetwork) -> list[Issue]:
-        out: list[Issue] = []
-        n_orgs = len(network.organizations)
-        n_svcs = len(network.services)
-        if n_orgs != TARGET_ORGS:
-            out.append(
-                Issue(
-                    code="quota",
-                    path="organizations",
-                    level="warning",
-                    message=f"organizations count is {n_orgs}, target is {TARGET_ORGS}",
-                )
-            )
-        if n_svcs != TARGET_SERVICES:
-            out.append(
-                Issue(
-                    code="quota",
-                    path="services",
-                    level="warning",
-                    message=f"services count is {n_svcs}, target is {TARGET_SERVICES}",
-                )
-            )
         return out
 
 

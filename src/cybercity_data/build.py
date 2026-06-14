@@ -5,7 +5,6 @@ Produces:
     build/network.md          — human-readable projection
     build/schema.json         — JSON Schema for downstream validation
     build/topology.json       — clean graph (nodes + edges) for UI
-    build/attack-surface.json — public services with weak posture
 """
 
 from __future__ import annotations
@@ -15,7 +14,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .check import TARGET_ORGS, TARGET_SERVICES
 from .models import CityNetwork, OrgKind
 
 __all__ = ["Builder", "build_artifacts"]
@@ -45,7 +43,6 @@ class Builder:
             "network.md": self._build_markdown(),
             "schema.json": self._build_schema(),
             "topology.json": self._build_topology(),
-            "attack-surface.json": self._build_attack_surface(),
         }
 
     def render(self, target: Path | str) -> list[Path]:
@@ -100,8 +97,7 @@ class Builder:
                     "auth": s.auth,
                     "data_classification": s.data_classification,
                     "ports": list(s.ports),
-                    "known_weakness": s.known_weakness,
-                    "is_decoy": s.decoy is not None,
+                    "is_mock": s.decoy is not None,
                     "host": s.host,
                 }
             )
@@ -120,7 +116,6 @@ class Builder:
                     "encryption": link.encryption,
                     "bidirectional": link.bidirectional,
                     "label": link.label,
-                    "attack_chain": list(link.attack_chain),
                 }
             )
 
@@ -134,56 +129,12 @@ class Builder:
                 "networks": sum(len(o.networks) for o in self.network.organizations),
                 "services": len(self.network.services),
                 "links": len(self.network.links),
-                "decoys": sum(1 for s in self.network.services if s.decoy is not None),
+                "mock_services": sum(1 for s in self.network.services if s.decoy is not None),
             },
             "nodes": nodes,
             "edges": edges,
         }
         return json.dumps(topology, indent=2, ensure_ascii=False)
-
-    # ─────────────────────────────────────────────────────────────────
-    # Attack surface report
-    # ─────────────────────────────────────────────────────────────────
-    def _build_attack_surface(self) -> str:
-        import json
-
-        weak_auth = {"none", "local"}
-        items: list[dict[str, Any]] = []
-        for svc in self.network.services:
-            if svc.exposure != "public":
-                continue
-            reasons: list[str] = []
-            if svc.auth in weak_auth:
-                reasons.append(f"auth={svc.auth}")
-            if svc.known_weakness:
-                reasons.append(f"weakness={svc.known_weakness}")
-            if svc.decoy:
-                continue
-            if not reasons:
-                continue
-            items.append(
-                {
-                    "id": svc.id,
-                    "org_id": svc.org_id,
-                    "kind": svc.kind,
-                    "host": svc.host,
-                    "bind_ip": svc.bind_ip,
-                    "auth": svc.auth,
-                    "data_classification": svc.data_classification,
-                    "known_weakness": svc.known_weakness,
-                    "reasons": reasons,
-                }
-            )
-
-        report = {
-            "schema_version": 1,
-            "meta": {
-                "source_version": self.network.version,
-            },
-            "count": len(items),
-            "items": sorted(items, key=lambda x: x["id"]),
-        }
-        return json.dumps(report, indent=2, ensure_ascii=False)
 
     # ─────────────────────────────────────────────────────────────────
     # Markdown projection
@@ -194,7 +145,7 @@ class Builder:
         n_svcs = len(self.network.services)
         n_links = len(self.network.links)
         n_nets = sum(len(o.networks) for o in self.network.organizations)
-        n_decoys = sum(1 for s in self.network.services if s.decoy is not None)
+        n_mocks = sum(1 for s in self.network.services if s.decoy is not None)
 
         parts: list[str] = []
         parts.append("# CyberCity — Network Projection")
@@ -208,11 +159,11 @@ class Builder:
         # ── 1. Сводка ─────────────────────────────────────────────────
         parts.append("## Сводка")
         parts.append("")
-        parts.append(f"- **Организаций:** {n_orgs} (цель: {TARGET_ORGS})")
-        parts.append(f"- **Сервисов:** {n_svcs} (цель: {TARGET_SERVICES})")
+        parts.append(f"- **Организаций:** {n_orgs}")
+        parts.append(f"- **Сервисов:** {n_svcs}")
         parts.append(f"- **Сетей:** {n_nets}")
         parts.append(f"- **Связей:** {n_links}")
-        parts.append(f"- **Decoy-хостов:** {n_decoys}")
+        parts.append(f"- **Имитационных сервисов:** {n_mocks}")
         parts.append("")
 
         by_kind: Counter[str] = Counter(o.kind for o in self.network.organizations)
@@ -288,7 +239,7 @@ class Builder:
         parts.append("")
         parts.append(
             "| id | org | network | bind_ip | kind | exposure | auth | "
-            "classification | software | ports | decoy |"
+            "classification | software | ports | mock |"
         )
         parts.append("|---|---|---|---|---|---|---|---|---|---|---|")
         net_by_id = {n.id: n for o in self.network.organizations for n in o.networks}
@@ -300,23 +251,23 @@ class Builder:
                 if s.software.version:
                     sw += f" {s.software.version}"
             ports = ", ".join(s.ports)
-            decoy = s.decoy.kind if s.decoy else ""
+            mock = s.decoy.kind if s.decoy else ""
             bind_ip = s.bind_ip or ""
             parts.append(
                 f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {bind_ip} | "
                 f"{s.kind} | {s.exposure} | {s.auth} | {s.data_classification} | "
-                f"{sw} | {ports} | {decoy} |"
+                f"{sw} | {ports} | {mock} |"
             )
         parts.append("")
 
-        # ── 6. Decoy-хосты ────────────────────────────────────────────
-        parts.append("## Decoy-хосты")
+        # ── 6. Имитационные сервисы ───────────────────────────────────
+        parts.append("## Имитационные сервисы")
         parts.append("")
-        decoys = [s for s in self.network.services if s.decoy is not None]
-        if decoys:
-            parts.append("| id | org | network | bind_ip | decoy_kind | fingerprint | os_hint |")
+        mocks = [s for s in self.network.services if s.decoy is not None]
+        if mocks:
+            parts.append("| id | org | network | bind_ip | mock_kind | fingerprint | os_hint |")
             parts.append("|---|---|---|---|---|---|---|")
-            for s in sorted(decoys, key=lambda x: x.id):
+            for s in sorted(mocks, key=lambda x: x.id):
                 assert s.decoy is not None
                 parts.append(
                     f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {s.bind_ip or ''} | "

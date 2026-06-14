@@ -7,6 +7,7 @@ description: |
   Муниципальный центр города. Принимает налоговые декларации,
   ведёт реестр жителей, рассылает уведомления. Зарплатный
   проект - в City First Bank (см. link trusts hall-idp -> bank-idp).
+  City Hall также предоставляет городскую инфраструктуру DNS, NTP и log collection.
 
 third_party:
   - name: City First Bank
@@ -16,13 +17,15 @@ third_party:
 tags:
   - public-services
   - mfa-mandated
+  - city-infrastructure
 
 regulated: []
 
 notes:
-  - "portal.city-hall.corp отдаёт публичную форму - entry point в сценариях"
-  - "file-share содержит бюджетные документы, удобная цель для lateral movement"
-  - "mail - основной канал фишинговых рассылок в городских сценариях"
+  - "portal.city-hall.corp - публичный портал муниципалитета"
+  - "file-share - общее файловое хранилище департаментов"
+  - "mail - городская почтовая инфраструктура"
+  - "hall-dns / hall-ntp / hall-log - shared city services"
 
 networks:
   - id: city-hall-dmz
@@ -83,7 +86,6 @@ services:
       version: "3.1.1"
     ports: [tcp/445]
     owner_team: records
-    known_weakness: open-share
 
   - id: hall-idp
     name: "City Hall SSO"
@@ -101,6 +103,54 @@ services:
     ports: [tcp/443]
     owner_team: ict
 
+  - id: hall-dns
+    name: "City DNS"
+    kind: dns
+    exposure: public
+    host: dns.city-hall.corp
+    network_id: city-hall-dmz
+    bind_ip: 10.10.1.11
+    auth: none
+    data_classification: public
+    software:
+      vendor: ISC
+      product: BIND
+      version: "9.18"
+    ports: [tcp/53, udp/53]
+    owner_team: ict
+
+  - id: hall-ntp
+    name: "City NTP"
+    kind: ntp
+    exposure: intranet
+    host: ntp.city-hall.corp
+    network_id: city-hall-lan
+    bind_ip: 10.10.129.13
+    auth: none
+    data_classification: internal
+    software:
+      vendor: NTPProject
+      product: ntpd
+      version: "4.2.8"
+    ports: [udp/123]
+    owner_team: ict
+
+  - id: hall-log
+    name: "City log collector"
+    kind: log
+    exposure: intranet
+    host: log.city-hall.corp
+    network_id: city-hall-lan
+    bind_ip: 10.10.129.14
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Elastic
+      product: elasticsearch
+      version: "8.11"
+    ports: [tcp/9200]
+    owner_team: soc
+
 links:
   - from_service: hall-idp
     to_service: bank-idp
@@ -108,4 +158,31 @@ links:
     protocol: tcp/443
     encryption: sso-trust
     label: "federated SSO for payroll portal"
-    attack_chain: ["scn-01"]
+
+  - from_service: hall-web
+    to_service: hall-dns
+    kind: m2m
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: hall-mail
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "mail logs"
+
+  - from_service: hall-fs
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "file-share logs"
+
+  - from_service: hall-idp
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "idp audit logs"
