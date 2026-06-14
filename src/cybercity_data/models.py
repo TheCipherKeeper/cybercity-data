@@ -25,9 +25,7 @@ __all__ = [
     "LinkEncryption",
     "DecoyKind",
     "DecoyFingerprint",
-    "Regulation",
     "Network",
-    "ThirdParty",
     "Organization",
     "Service",
     "Link",
@@ -129,8 +127,6 @@ DecoyFingerprint = Literal[
     "decoy-banner",
 ]
 
-Regulation = Literal["hipaa", "pci-dss", "gdpr", "nerc-cip", "sox", "ferpa"]
-
 # ─────────────────────────────────────────────────────────────────────
 # Patterns
 # ─────────────────────────────────────────────────────────────────────
@@ -178,14 +174,6 @@ class Software(_StrictModel):
     cve_id: str | None = Field(default=None, pattern=_CVE)
 
 
-class ThirdParty(_StrictModel):
-    """Vendor / MSP / 3rd-party tied to one organization."""
-
-    name: str
-    role: str
-    note: str | None = None
-
-
 class DecoyBlock(_StrictModel):
     """Marks a service as a simulation-only / mock service."""
 
@@ -206,11 +194,6 @@ class Organization(_StrictModel):
     network_index: int = Field(ge=1, le=255)
 
     description: str | None = None
-    third_party: list[ThirdParty] = []
-    notes: list[str] = []
-    tags: list[str] = []
-    regulated: list[Regulation] = []
-    headcount_estimate: int | None = Field(default=None, ge=0)
 
     # Networks must be declared explicitly in v2.0.
     networks: list[Network] = []

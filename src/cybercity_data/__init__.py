@@ -22,11 +22,9 @@ from .models import (
     NetworkKind,
     Organization,
     OrgKind,
-    Regulation,
     Service,
     Software,
     SvcKind,
-    ThirdParty,
 )
 
 __version__ = "0.4.0"
@@ -47,12 +45,10 @@ __all__ = [
     "NetworkKind",
     "OrgKind",
     "Organization",
-    "Regulation",
     "SCHEMA_VERSION",
     "Service",
     "Software",
     "SvcKind",
-    "ThirdParty",
     # Pipeline
     "Issue",
     "Report",

@@ -8,27 +8,6 @@ description: |
   Через bank-api ходят платежи от других организаций (аптека - см. link).
   bank-db - критический актив (core ledger), защищён по сегменту corp.
 
-third_party:
-  - name: City Hall
-    role: payroll customer
-    note: trusts от hall-idp к bank-idp
-  - name: City Pharmacy Chain
-    role: payments customer
-    note: POS бьёт по bank-api (api-call)
-
-tags:
-  - pci
-  - high-value-target
-
-regulated:
-  - pci-dss
-  - sox
-
-notes:
-  - "bank-db не торчит наружу - api-call идёт через bank-api"
-  - "bank-idp - федеративный SSO для муниципалитета"
-  - "portal.city-bank.corp - публичный web портал"
-
 networks:
   - id: city-bank-dmz
     kind: dmz

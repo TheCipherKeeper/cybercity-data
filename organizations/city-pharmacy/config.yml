@@ -8,23 +8,6 @@ description: |
   Хранит рецепты и историю покупок (phar-db) - данные под защитой
   healthcare-профиля.
 
-third_party:
-  - name: City First Bank
-    role: payment processor
-    note: phar-pos -> bank-api (api-call, tcp/443)
-
-tags:
-  - phi
-  - pos-flagship
-
-regulated:
-  - hipaa
-
-notes:
-  - "phar-pos - POS-терминалы в аптеках"
-  - "phar-db - рецепты и история покупок"
-  - "phar-idp - локальный SSO аптек"
-
 networks:
   - id: city-pharmacy-dmz
     kind: dmz

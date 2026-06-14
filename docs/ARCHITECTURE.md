@@ -58,8 +58,7 @@ cybercity-data/
 
 ```
 id, name, kind, network_index      # 1-255, city-wide unique second octet
-description, third_party[], notes, tags[], regulated[]
-headcount_estimate
+description
 networks[]                       # REQUIRED in v2.0
 ```
 

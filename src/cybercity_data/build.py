@@ -193,17 +193,14 @@ class Builder:
         parts.append("## Организации")
         parts.append("")
         parts.append(
-            "| id | name | kind | network_index | networks | services | tags | regulated |"
+            "| id | name | kind | network_index | networks | services |"
         )
-        parts.append("|---|---|---|---|---|---|---|---|")
+        parts.append("|---|---|---|---|---|---|")
         svc_count_by_org = Counter(s.org_id for s in self.network.services)
         for o in sorted(self.network.organizations, key=lambda x: x.id):
-            tags = ", ".join(o.tags) if o.tags else ""
-            regulated = ", ".join(o.regulated) if o.regulated else ""
             parts.append(
                 f"| `{o.id}` | {o.name} | {o.kind} | {o.network_index} | "
-                f"{len(o.networks)} | {svc_count_by_org.get(o.id, 0)} | "
-                f"{tags} | {regulated} |"
+                f"{len(o.networks)} | {svc_count_by_org.get(o.id, 0)} |"
             )
         parts.append("")
 

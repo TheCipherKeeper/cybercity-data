@@ -9,24 +9,6 @@ description: |
   проект - в City First Bank (см. link trusts hall-idp -> bank-idp).
   City Hall также предоставляет городскую инфраструктуру DNS, NTP и log collection.
 
-third_party:
-  - name: City First Bank
-    role: payroll
-    note: односторонний SSO-trust от hall-idp к bank-idp
-
-tags:
-  - public-services
-  - mfa-mandated
-  - city-infrastructure
-
-regulated: []
-
-notes:
-  - "portal.city-hall.corp - публичный портал муниципалитета"
-  - "file-share - общее файловое хранилище департаментов"
-  - "mail - городская почтовая инфраструктура"
-  - "hall-dns / hall-ntp / hall-log - shared city services"
-
 networks:
   - id: city-hall-dmz
     kind: dmz
