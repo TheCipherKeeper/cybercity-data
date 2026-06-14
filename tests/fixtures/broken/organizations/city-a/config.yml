@@ -1,0 +1,11 @@
+id: city-a
+name: "City A"
+kind: finance
+segment: corp
+
+services:
+  - id: web
+    name: "A web"
+    kind: web
+    exposure: public
+    host: a.example

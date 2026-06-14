@@ -1,0 +1,20 @@
+id: city-courthouse
+name: "City Courthouse"
+kind: government
+segment: corp
+
+description: |
+  Test fixture: 1 org with 1 service and 1 cross-org link to hosp-web.
+
+services:
+  - id: cour-web
+    name: "Courthouse site"
+    kind: web
+    exposure: public
+    host: www.city-courthouse.corp
+
+links:
+  - from_service: cour-web
+    to_service: hosp-web
+    kind: auth
+    protocol: tcp/443

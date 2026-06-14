@@ -1,0 +1,11 @@
+id: city-c
+name: "City C"
+kind: finance
+segment: corp
+
+services:
+  - id: mail
+    name: "C mail"
+    kind: mail
+    exposure: intranet
+    host: mail.c.example

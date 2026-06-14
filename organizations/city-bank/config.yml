@@ -16,6 +16,14 @@ third_party:
     role: payments customer
     note: POS бьёт по bank-api (api-call)
 
+tags:
+  - pci
+  - high-value-target
+
+regulated:
+  - pci-dss
+  - sox
+
 notes:
   - "bank-db никогда не торчит наружу - даже api-call идёт через bank-api"
   - "bank-idp - главная цель credential stuffing в сценариях"
@@ -23,30 +31,57 @@ notes:
 
 services:
   - id: bank-web
-    org_id: city-bank
     name: "Bank customer portal"
     kind: web
     exposure: public
     host: portal.city-bank.corp
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    owner_team: digital
+
   - id: bank-api
-    org_id: city-bank
     name: "Bank payments API"
     kind: api
     exposure: intranet
     host: api.city-bank.corp
+    auth: mfa
+    data_classification: pci
+    software:
+      vendor: internal
+      product: payments-gateway
+      version: "3.2.0"
+    ports: [tcp/443]
+    owner_team: payments
+
   - id: bank-idp
-    org_id: city-bank
     name: "Bank SSO"
     kind: identity
     exposure: intranet
     host: idp.city-bank.corp
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Okta
+      product: okta
+      version: unknown
+    ports: [tcp/443]
+    owner_team: iam
+
   - id: bank-db
-    org_id: city-bank
     name: "Bank core ledger"
     kind: db
     exposure: intranet
     host: db.city-bank.corp
-
-decoys: []
-
-links: []
+    auth: certificate
+    data_classification: pci
+    software:
+      vendor: Oracle
+      product: DB
+      version: "19.0.0.0"
+    ports: [tcp/1521]
+    owner_team: dba

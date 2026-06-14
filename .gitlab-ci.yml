@@ -1,0 +1,36 @@
+default:
+  image: ghcr.io/astral-sh/uv:python3.12-bookworm
+  cache:
+    key:
+      files:
+        - uv.lock
+        - pyproject.toml
+    paths:
+      - .uv-cache/
+
+stages:
+  - lint
+  - test
+  - check
+
+lint:
+  stage: lint
+  script:
+    - uv sync --frozen
+    - uv run ruff check
+
+test:
+  stage: test
+  script:
+    - uv sync --frozen
+    - uv run pytest -q
+  artifacts:
+    when: on_failure
+    paths:
+      - .pytest_cache/
+
+check:
+  stage: check
+  script:
+    - uv sync --frozen
+    - uv run cybercity-data check .

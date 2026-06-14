@@ -13,6 +13,13 @@ third_party:
     role: payment processor
     note: phar-pos -> bank-api (api-call, tcp/443)
 
+tags:
+  - phi
+  - pos-flagship
+
+regulated:
+  - hipaa
+
 notes:
   - "phar-pos - типичная точка входа через слабый пароль кассира"
   - "phar-db содержит рецепты - lateral target от POS"
@@ -20,28 +27,53 @@ notes:
 
 services:
   - id: phar-pos
-    org_id: city-pharmacy
     name: "Pharmacy POS"
     kind: pos
     exposure: intranet
     host: pos.city-pharmacy.corp
+    auth: local
+    data_classification: phi
+    software:
+      vendor: Square
+      product: Square-POS
+      version: "5.0"
+    ports: [tcp/443]
+    owner_team: retail-ops
+    known_weakness: default-creds
+
   - id: phar-idp
-    org_id: city-pharmacy
     name: "Pharmacy SSO"
     kind: identity
     exposure: intranet
     host: idp.city-pharmacy.corp
+    auth: sso
+    data_classification: restricted
+    software:
+      vendor: Auth0
+      product: auth0
+      version: unknown
+    ports: [tcp/443]
+    owner_team: ict
+
   - id: phar-db
-    org_id: city-pharmacy
     name: "Pharmacy records"
     kind: db
     exposure: intranet
     host: db.city-pharmacy.corp
-
-decoys: []
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    owner_team: dba
 
 links:
   - from_service: phar-pos
     to_service: bank-api
     kind: api-call
     protocol: tcp/443
+    encryption: tls
+    label: "card-present payment authorisation"
+    attack_chain: ["scn-04"]

@@ -1,6 +1,6 @@
 version: "1.0.0"
 meta:
-  city: cybercity
+  city: broken
   allocation:
     corp: 10.10.0.0/16
     ot: 10.20.0.0/16

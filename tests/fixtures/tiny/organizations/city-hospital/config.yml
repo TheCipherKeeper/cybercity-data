@@ -1,0 +1,14 @@
+id: city-hospital
+name: "City General Hospital"
+kind: healthcare
+segment: corp
+
+description: |
+  Test fixture: 1 org with a single web service.
+
+services:
+  - id: hosp-web
+    name: "Hospital portal"
+    kind: web
+    exposure: public
+    host: portal.city-hospital.corp

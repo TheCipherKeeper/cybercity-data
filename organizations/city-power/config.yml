@@ -1,0 +1,32 @@
+id: city-power
+name: "City Power & Light"
+kind: infra-utilities
+segment: ot
+
+description: |
+  Test fixture: 1 org in ot segment with 1 service and 1 decoy.
+
+services:
+  - id: power-ot
+    name: "SCADA gateway"
+    kind: ot
+    exposure: ot
+    host: scada.city-power.ot
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Siemens
+      product: SIMATIC
+      version: "16.0"
+    ports: [tcp/102]
+
+  - id: decoy-printer-01
+    name: "Decoy printer"
+    kind: iot
+    exposure: ot
+    host: decoy-printer-01.city-power.ot
+    ports: [tcp/9100, tcp/80]
+    decoy:
+      kind: printer
+      fingerprint: default-creds
+      os_hint: linux-embedded

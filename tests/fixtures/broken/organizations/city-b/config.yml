@@ -1,0 +1,19 @@
+id: city-b
+name: "City B"
+kind: finance
+segment: corp
+
+# `web` is a duplicate service id across orgs (city-a also has one) -> ids
+# `web -> ghost` is a dangling link -> refs
+services:
+  - id: web
+    name: "B web"
+    kind: web
+    exposure: public
+    host: b.example
+
+links:
+  - from_service: web
+    to_service: ghost
+    kind: api-call
+    protocol: tcp/443
