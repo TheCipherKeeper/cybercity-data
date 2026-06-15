@@ -10,7 +10,7 @@ description: |
 networks:
   - id: water-ot
     kind: ot
-    cidr: 10.12.0.0/24
+    cidr: 10.12.128.0/24
   - id: water-dmz
     kind: dmz
     cidr: 10.12.1.0/24
@@ -28,7 +28,7 @@ services:
     exposure: ot
     host: scada.water.ot
     network_id: water-ot
-    bind_ip: 10.12.0.10
+    bind_ip: 10.12.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -44,7 +44,7 @@ services:
     exposure: ot
     host: hmi.water.ot
     network_id: water-ot
-    bind_ip: 10.12.0.11
+    bind_ip: 10.12.128.11
     auth: local
     data_classification: restricted
     software:
@@ -107,6 +107,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "public reports DNS"
+
+  - from_service: water-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
 
   - from_service: water-scada
     to_service: hall-ntp

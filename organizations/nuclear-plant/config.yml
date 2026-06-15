@@ -6,7 +6,8 @@ network_index: 30
 description: |
   Городская атомная электростанция. Управляет реактором, турбинами,
   радиационным мониторингом и системами физической безопасности.
-  OT-сегмент строго изолирован, связь с энергосетью и центром ЧС.
+  OT-сегмент строго изолирован; связь с энергосетью и центром ЧС идёт
+  через выделенный emergency API.
 
 networks:
   - id: nuclear-plant-dmz
@@ -119,6 +120,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: npp-emergency
+    name: "NPP emergency status API"
+    kind: api
+    exposure: intranet
+    host: emergency.nuclear-plant.corp
+    network_id: nuclear-plant-lan
+    bind_ip: 10.30.129.13
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: internal
+      product: npp-emergency
+      version: "1.0.0"
+    ports: [tcp/443]
+    criticality: critical
+
 links:
   - from_service: npp-web
     to_service: hall-dns
@@ -126,6 +143,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: npp-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
 
   - from_service: npp-scada
     to_service: hall-ntp
@@ -140,6 +164,13 @@ links:
     protocol: tcp/5432
     encryption: tls
     label: "reactor telemetry"
+
+  - from_service: npp-hmi
+    to_service: npp-scada
+    kind: api-call
+    protocol: tcp/443
+    encryption: none
+    label: "HMI controls SCADA"
 
   - from_service: npp-hmi
     to_service: npp-db
@@ -168,3 +199,10 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "telemetry DB backup"
+
+  - from_service: npp-emergency
+    to_service: npp-scada
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "emergency reactor status"

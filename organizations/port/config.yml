@@ -107,6 +107,13 @@ links:
     encryption: none
     label: "public portal DNS resolution"
 
+  - from_service: port-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
+
   - from_service: port-cargo
     to_service: hall-dns
     kind: dns-query

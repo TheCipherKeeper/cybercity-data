@@ -4,25 +4,48 @@ kind: infra-utilities
 network_index: 4
 
 description: |
-  Городская энергетическая компания. SCADA-шлюз управляет подстанциями.
-  Имитационный принтер в сети OT используется для наполнения симуляции.
+  Городская энергетическая компания. Управляет подстанциями, распределительными
+  сетями и telemetry. SCADA-шлюз и операторский HMI находятся в изолированном
+  OT-сегменте. Имитационный принтер в сети OT используется для наполнения симуляции.
 
 networks:
   - id: power-ot
     kind: ot
-    cidr: 10.4.0.0/24
+    cidr: 10.4.128.0/24
+  - id: power-dmz
+    kind: dmz
+    cidr: 10.4.1.0/24
+  - id: power-lan
+    kind: lan
+    cidr: 10.4.129.0/24
   - id: power-mgmt
     kind: mgmt
     cidr: 10.4.253.0/24
 
 services:
-  - id: power-ot
-    name: "SCADA gateway"
+  - id: power-web
+    name: "Power customer portal"
+    kind: web
+    exposure: public
+    host: portal.power.corp
+    network_id: power-dmz
+    bind_ip: 10.4.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: power-scada
+    name: "Power SCADA gateway"
     kind: ot
     exposure: ot
     host: scada.power.ot
     network_id: power-ot
-    bind_ip: 10.4.0.10
+    bind_ip: 10.4.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -32,13 +55,77 @@ services:
     ports: [tcp/102]
     criticality: critical
 
+  - id: power-hmi
+    name: "Power operator HMI"
+    kind: ot
+    exposure: ot
+    host: hmi.power.ot
+    network_id: power-ot
+    bind_ip: 10.4.128.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: Aveva
+      product: intouch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: power-db
+    name: "Power telemetry DB"
+    kind: db
+    exposure: intranet
+    host: db.power.corp
+    network_id: power-lan
+    bind_ip: 10.4.129.10
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: power-emergency
+    name: "Power emergency status API"
+    kind: api
+    exposure: intranet
+    host: emergency.power.corp
+    network_id: power-lan
+    bind_ip: 10.4.129.11
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: internal
+      product: power-status
+      version: "1.0.0"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: power-backup
+    name: "Power backup"
+    kind: backup
+    exposure: intranet
+    host: backup.power.corp
+    network_id: power-lan
+    bind_ip: 10.4.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
   - id: decoy-printer-01
     name: "Mock OT printer"
     kind: iot
     exposure: ot
     host: decoy-printer-01.power.ot
     network_id: power-ot
-    bind_ip: 10.4.0.11
+    bind_ip: 10.4.128.12
     ports: [tcp/9100, tcp/80]
     decoy:
       kind: printer
@@ -47,12 +134,61 @@ services:
       note: "mock IoT endpoint for simulation density"
 
 links:
-  - from_service: power-ot
+  - from_service: power-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS resolution"
+
+  - from_service: power-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
+
+  - from_service: power-scada
     to_service: hall-ntp
     kind: ntp-query
     protocol: udp/123
     encryption: none
     label: "OT time sync"
+
+  - from_service: power-scada
+    to_service: power-db
+    kind: db-write
+    protocol: tcp/5432
+    encryption: tls
+    label: "SCADA writes telemetry"
+
+  - from_service: power-hmi
+    to_service: power-scada
+    kind: api-call
+    protocol: tcp/102
+    encryption: none
+    label: "HMI controls SCADA"
+
+  - from_service: power-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "DB audit logs"
+
+  - from_service: power-emergency
+    to_service: power-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "grid status for emergency services"
+
+  - from_service: power-backup
+    to_service: power-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "telemetry DB backup"
 
   - from_service: decoy-printer-01
     to_service: hall-dns

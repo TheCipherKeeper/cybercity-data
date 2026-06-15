@@ -43,7 +43,7 @@ services:
     network_id: transport-lan
     bind_ip: 10.11.129.10
     auth: local
-    data_classification: pii
+    data_classification: pci
     software:
       vendor: internal
       product: fare-system
@@ -106,6 +106,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "schedule portal DNS"
+
+  - from_service: transport-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
 
   - from_service: transport-tickets
     to_service: bank-api

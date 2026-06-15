@@ -10,7 +10,7 @@ description: |
 networks:
   - id: factory-ot
     kind: ot
-    cidr: 10.10.0.0/24
+    cidr: 10.10.128.0/24
   - id: factory-dmz
     kind: dmz
     cidr: 10.10.1.0/24
@@ -28,7 +28,7 @@ services:
     exposure: ot
     host: plc.factory.ot
     network_id: factory-ot
-    bind_ip: 10.10.0.10
+    bind_ip: 10.10.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -44,7 +44,7 @@ services:
     exposure: ot
     host: hmi.factory.ot
     network_id: factory-ot
-    bind_ip: 10.10.0.11
+    bind_ip: 10.10.128.11
     auth: local
     data_classification: restricted
     software:
@@ -130,6 +130,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "supplier portal DNS"
+
+  - from_service: factory-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
 
   - from_service: factory-erp
     to_service: hall-log

@@ -5,7 +5,8 @@ network_index: 20
 
 description: |
   Городской региональный аэропорт. Пассажирский портал, система
-  управления зданием (BMS), CCTV и информация о рейсах.
+  управления зданием (BMS), CCTV, информация о рейсах и оперативный API
+  для координации с центром экстренного реагирования.
 
 networks:
   - id: airport-dmz
@@ -111,6 +112,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: airport-ops
+    name: "Airport operations API"
+    kind: api
+    exposure: intranet
+    host: ops.airport.corp
+    network_id: airport-lan
+    bind_ip: 10.20.129.14
+    auth: mfa
+    data_classification: internal
+    software:
+      vendor: internal
+      product: airport-ops
+      version: "1.0.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: airport-web
     to_service: hall-dns
@@ -118,6 +135,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: airport-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO via City Hall"
 
   - from_service: airport-bms
     to_service: hall-dns
@@ -167,3 +191,10 @@ links:
     protocol: udp/53
     encryption: none
     label: "captive portal DNS"
+
+  - from_service: airport-ops
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "ops API DNS resolution"
