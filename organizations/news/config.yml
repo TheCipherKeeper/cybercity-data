@@ -58,7 +58,7 @@ services:
     host: stream.news.media
     network_id: news-dmz
     bind_ip: 10.23.1.11
-    auth: sso
+    auth: none
     data_classification: public
     software:
       vendor: nginx
@@ -101,11 +101,25 @@ services:
 
 links:
   - from_service: news-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: news-web
     to_service: hall-dns
     kind: dns-query
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: news-web
+    to_service: isp-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal primary DNS via ISP"
 
   - from_service: news-cms
     to_service: hall-dns
@@ -113,6 +127,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "CMS DNS resolution"
+
+  - from_service: news-cms
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CMS time sync"
 
   - from_service: news-cms
     to_service: news-db

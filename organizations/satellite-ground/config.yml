@@ -4,9 +4,9 @@ kind: media-telecom
 network_index: 34
 
 description: |
-  Наземная станция спутниковой связи города. Обеспечивает мобильного
-  оператора, аэропорт, новостную компанию и экстренные службы спутниковыми
-  каналами связи и данными.
+  Наземная станция спутниковой связи города. Поставляет новостной компании
+  спутниковые снимки и данные, обеспечивает мобильного оператора резервными
+  каналами связи, использует городскую инфраструктуру DNS, NTP и log collection.
 
 networks:
   - id: satellite-ground-dmz
@@ -34,7 +34,7 @@ services:
       product: nginx
       version: "1.24.0"
     ports: [tcp/443, tcp/80]
-    criticality: medium
+    criticality: high
 
   - id: sat-control
     name: "Satellite control"
@@ -98,11 +98,25 @@ services:
 
 links:
   - from_service: sat-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: sat-web
     to_service: hall-dns
     kind: dns-query
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: sat-web
+    to_service: isp-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal primary DNS via ISP"
 
   - from_service: sat-control
     to_service: hall-dns
@@ -110,6 +124,20 @@ links:
     protocol: udp/53
     encryption: none
     label: "control DNS resolution"
+
+  - from_service: sat-control
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "control time sync"
+
+  - from_service: sat-telemetry
+    to_service: news-cms
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "satellite imagery feed"
 
   - from_service: sat-control
     to_service: sat-db

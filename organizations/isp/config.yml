@@ -154,6 +154,13 @@ services:
 
 links:
   - from_service: isp-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: isp-web
     to_service: isp-dns
     kind: dns-query
     protocol: udp/53
@@ -187,6 +194,20 @@ links:
     protocol: udp/53
     encryption: none
     label: "billing DNS resolution"
+
+  - from_service: isp-billing
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "billing time sync"
+
+  - from_service: isp-billing
+    to_service: mobile-billing
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "inter-carrier settlement"
 
   - from_service: isp-radius
     to_service: hall-dns

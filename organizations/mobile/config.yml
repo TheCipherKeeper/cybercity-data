@@ -44,7 +44,7 @@ services:
     network_id: mobile-lan
     bind_ip: 10.24.129.10
     auth: mfa
-    data_classification: confidential
+    data_classification: pci
     software:
       vendor: Custom
       product: mobile-billing
@@ -60,7 +60,7 @@ services:
     network_id: mobile-lan
     bind_ip: 10.24.129.11
     auth: certificate
-    data_classification: restricted
+    data_classification: pii
     software:
       vendor: Oracle
       product: oracle-db
@@ -102,11 +102,25 @@ services:
 
 links:
   - from_service: mobile-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: mobile-web
     to_service: hall-dns
     kind: dns-query
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: mobile-web
+    to_service: isp-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "portal primary DNS via ISP"
 
   - from_service: mobile-billing
     to_service: hall-dns
@@ -114,6 +128,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "billing DNS resolution"
+
+  - from_service: mobile-billing
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "billing time sync"
 
   - from_service: mobile-billing
     to_service: mobile-hlr
