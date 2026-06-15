@@ -8,8 +8,6 @@ Schema goals for v3.0:
   * `extra="forbid"` keeps typos loud.
 """
 
-from __future__ import annotations
-
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -145,6 +143,7 @@ _PORT = r"^(tcp|udp)/(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1
 _FQDN = r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$"
 _SOFTWARE_VERSION = r"^(\d+(\.\d+){0,3}(-[\w.]+)?|unknown|any)$"
 _CVE = r"^CVE-\d{4}-\d{4,}$"
+
 
 # ─────────────────────────────────────────────────────────────────────
 # Base model

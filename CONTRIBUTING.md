@@ -13,11 +13,11 @@ uv run cybercity-data build .
 
 ## Project structure
 
-- `src/cybercity_data/models.py` — Pydantic v2 schema.
-- `src/cybercity_data/loader.py` — assembles `CityNetwork` from `organizations/<org>/config.yml`.
-- `src/cybercity_data/check.py` — cross-field validation rules.
-- `src/cybercity_data/build.py` — artifact generation.
-- `src/cybercity_data/cli.py` — `check`, `build`, `init` commands.
+- `src/cybercity_data/domain/models.py` — Pydantic v2 schema.
+- `src/cybercity_data/data/loader.py` — assembles `CityNetwork` from `organizations/<org>/config.yml`.
+- `src/cybercity_data/domain/checker.py` — cross-field validation rules.
+- `src/cybercity_data/data/renderer.py` — artifact generation; `src/cybercity_data/use_cases/build.py` — build orchestration.
+- `src/cybercity_data/controllers/` — `check`, `build`, `init` CLI commands.
 - `organizations/` — canonical city data.
 - `tests/` — pytest suite, including property-based tests.
 
@@ -32,9 +32,9 @@ Use `--empty` for a minimal template.
 
 ## Adding a validation rule
 
-1. Add a method to `NetworkChecker` in `src/cybercity_data/check.py`.
+1. Add a method to `NetworkChecker` in `src/cybercity_data/domain/checker.py`.
 2. Call it from `NetworkChecker.check()`.
-3. Add a test to `tests/test_check.py`.
+3. Add a test to `tests/domain/test_checker.py`.
 4. Update `docs/ARCHITECTURE.md` cross-field rules table.
 
 Rules should:
@@ -44,10 +44,10 @@ Rules should:
 
 ## Adding a build artifact
 
-1. Add a `_build_*` method to `Builder` in `src/cybercity_data/build.py`.
-2. Include it in `Builder.build()`.
-3. Add it to `engine.zip` in `_render_engine_zip()` if it belongs there.
-4. Add a test to `tests/test_build.py`.
+1. Add a `_build_*` method to `ArtifactRenderer` in `src/cybercity_data/data/renderer.py`.
+2. Include it in `ArtifactRenderer.render()`.
+3. Add it to `engine.zip` in `EngineZipWriter` if it belongs there.
+4. Add a test to `tests/data/test_renderer.py`.
 5. Update CI artifact lists and documentation.
 
 ## ADRs

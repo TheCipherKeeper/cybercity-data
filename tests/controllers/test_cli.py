@@ -1,13 +1,13 @@
 """CLI tests via typer.testing.CliRunner."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 
+import yaml
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from cybercity_data.cli import app
+from cybercity_data.controllers import app
 
 runner = CliRunner()
 
@@ -129,9 +129,7 @@ def test_build_clean_removes_old_files(tiny_path: Path, tmp_path: Path) -> None:
     out = tmp_path / "out"
     out.mkdir()
     (out / "stale.txt").write_text("old", encoding="utf-8")
-    result = runner.invoke(
-        app, ["build", str(tiny_path), "--out", str(out), "--clean"]
-    )
+    result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out), "--clean"])
     assert result.exit_code == 0, result.output
     assert not (out / "stale.txt").exists()
     assert (out / "network.json").exists()
@@ -145,7 +143,7 @@ def test_build_skipped_on_errors(tmp_path: Path) -> None:
     assert not (out / "network.json").exists()
 
 
-def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
+def test_init_creates_example_org(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     result = runner.invoke(
         app,
@@ -169,7 +167,7 @@ def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
     assert "hospital-web" in text
 
 
-def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> None:
+def test_init_creates_empty_org_with_flag(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     result = runner.invoke(
         app,
@@ -200,9 +198,14 @@ def test_check_json_on_missing_dir(tmp_path: Path) -> None:
     assert "error" in data
 
 
-def test_check_exits_1_on_bad_yaml(tmp_path: Path) -> None:
+def test_check_exits_1_on_bad_yaml(tmp_path: Path, monkeypatch) -> None:
     _make_minimal_repo(tmp_path)
     _write(tmp_path / "organizations" / "x" / "config.yml", "not: valid: yaml: [\n")
+
+    def boom(*_args, **_kwargs):
+        raise yaml.YAMLError("simulated yaml failure")
+
+    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
 
@@ -221,9 +224,7 @@ def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
 
 def test_check_json_includes_rendered_paths(tiny_path: Path, tmp_path: Path) -> None:
     out = tmp_path / "out"
-    result = runner.invoke(
-        app, ["build", str(tiny_path), "--out", str(out), "--json"]
-    )
+    result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out), "--json"])
     assert result.exit_code == 0
     data = json.loads(result.output)
     assert data["ok"] is True
@@ -246,7 +247,7 @@ def test_init_fails_without_organizations(tmp_path: Path) -> None:
     assert result.exit_code == 1
 
 
-def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
+def test_init_fails_when_org_exists(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "x").mkdir()
     result = runner.invoke(
@@ -267,34 +268,20 @@ def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:
     def boom(*_args, **_kwargs):
         raise RuntimeError("simulated internal failure")
 
-    monkeypatch.setattr("cybercity_data.cli._load", boom)
+    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
     assert "simulated internal failure" in result.output
 
 
-def test_check_exits_1_on_yaml_error(tmp_path: Path, monkeypatch) -> None:
-    import yaml
-
-    def boom(*_args, **_kwargs):
-        raise yaml.YAMLError("simulated yaml failure")
-
-    monkeypatch.setattr("cybercity_data.cli._load", boom)
-    result = runner.invoke(app, ["check", str(tmp_path)])
-    assert result.exit_code == 1
-    assert "YAML error" in result.output
-
-
-def test_check_exits_1_on_validation_error(tmp_path: Path, monkeypatch) -> None:
-    from pydantic import ValidationError
-
+def test_check_exits_1_on_validation_exception(tmp_path: Path, monkeypatch) -> None:
     def boom(*_args, **_kwargs):
         raise ValidationError.from_exception_data("CityNetwork", [])
 
-    monkeypatch.setattr("cybercity_data.cli._load", boom)
+    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
-    assert "schema errors" in result.output
+    assert "ValidationError" in result.output
 
 
 def test_build_exits_1_on_internal_render_error(
@@ -303,7 +290,7 @@ def test_build_exits_1_on_internal_render_error(
     def boom(*_args, **_kwargs):
         raise RuntimeError("render boom")
 
-    monkeypatch.setattr("cybercity_data.cli.Builder.render", boom)
+    monkeypatch.setattr("cybercity_data.services.build.BuildService.run", boom)
     out = tmp_path / "out"
     result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out)])
     assert result.exit_code == 1

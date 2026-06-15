@@ -1,11 +1,9 @@
 """Tests for the network/IP allocator."""
 
-from __future__ import annotations
-
 import pytest
 
-from cybercity_data.allocator import AllocationError, Allocator
-from cybercity_data.models import CityNetwork, Network, Organization, Service
+from cybercity_data.domain.allocator import AllocationError, Allocator
+from cybercity_data.domain.models import CityNetwork, Network, Organization, Service
 
 
 def _minimal_network() -> CityNetwork:
@@ -177,10 +175,7 @@ def test_too_many_dmz_networks_raises() -> None:
                 id="a",
                 name="A",
                 kind="government",
-                networks=[
-                    Network(id=f"a-dmz-{i}", org_id="a", kind="dmz")
-                    for i in range(129)
-                ],
+                networks=[Network(id=f"a-dmz-{i}", org_id="a", kind="dmz") for i in range(129)],
             )
         ],
         services=[],
@@ -196,10 +191,7 @@ def test_too_many_lan_networks_raises() -> None:
                 id="a",
                 name="A",
                 kind="government",
-                networks=[
-                    Network(id=f"a-lan-{i}", org_id="a", kind="lan")
-                    for i in range(126)
-                ],
+                networks=[Network(id=f"a-lan-{i}", org_id="a", kind="lan") for i in range(126)],
             )
         ],
         services=[],

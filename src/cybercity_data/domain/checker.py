@@ -4,21 +4,17 @@ Rules are semantic, never short-circuit, and return a stable `Issue` object.
 v0.3 codes are short words instead of V00n numbers — easier to read in CI.
 """
 
-from __future__ import annotations
-
 import ipaddress
 import re
 from collections import Counter
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .allocator import Allocation
-    from .models import CityNetwork
+from pydantic import BaseModel, ConfigDict
+
+from .allocator import Allocation
+from .models import CityNetwork
 
 
-@dataclass(frozen=True)
-class Issue:
+class Issue(BaseModel):
     """A single validation finding.
 
     code  — short semantic identifier, e.g. "ids" or "ip-in-network".
@@ -27,14 +23,17 @@ class Issue:
     message — human-readable explanation.
     """
 
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     code: str
     path: str
     level: str
     message: str
 
 
-@dataclass(frozen=True)
-class Report:
+class Report(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
     issues: list[Issue]
 
     @property
@@ -56,7 +55,7 @@ _CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,}$")
 class NetworkChecker:
     """Run every cross-field rule against an assembled `CityNetwork`.
 
-    The checker needs an :class:`~cybercity_data.allocator.Allocation` because
+    The checker needs an :class:`~cybercity_data.domain.allocator.Allocation` because
     concrete addressing is no longer part of the declarative model.
     """
 
@@ -113,8 +112,7 @@ class NetworkChecker:
                         path="links",
                         level="error",
                         message=(
-                            f"duplicate link ({frm!r} -> {to!r}, kind={kind!r}) "
-                            f"({n} occurrences)"
+                            f"duplicate link ({frm!r} -> {to!r}, kind={kind!r}) ({n} occurrences)"
                         ),
                     )
                 )
@@ -262,8 +260,7 @@ class NetworkChecker:
                         path=f"services[{i}].bind_ip",
                         level="error",
                         message=(
-                            f"service {svc.id!r} bind_ip {bind_ip!r} is not in "
-                            f"{cidr} ({net.id})"
+                            f"service {svc.id!r} bind_ip {bind_ip!r} is not in {cidr} ({net.id})"
                         ),
                     )
                 )
@@ -453,9 +450,7 @@ class NetworkChecker:
                         code="decoy-criticality",
                         path=f"services[{i}].criticality",
                         level="error",
-                        message=(
-                            f"decoy service {svc.id!r} cannot have criticality=critical"
-                        ),
+                        message=(f"decoy service {svc.id!r} cannot have criticality=critical"),
                     )
                 )
 

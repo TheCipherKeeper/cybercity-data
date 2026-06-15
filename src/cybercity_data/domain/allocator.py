@@ -16,29 +16,27 @@ The default allocation is random (different on every build).  A fixed seed makes
 it reproducible, which is useful for tests and CI.
 """
 
-from __future__ import annotations
-
 import random
 import secrets
 from collections.abc import Iterator
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .models import CityNetwork, Network, Organization
+from pydantic import BaseModel, ConfigDict
+
+from .models import CityNetwork, Network, Organization
 
 
 class AllocationError(Exception):
     """Raised when the declarative model cannot be turned into a valid address plan."""
 
 
-@dataclass(frozen=True)
-class Allocation:
+class Allocation(BaseModel):
     """Concrete addressing produced by the allocator."""
 
-    org_index: dict[str, int] = field(default_factory=dict)
-    net_cidr: dict[str, str] = field(default_factory=dict)
-    svc_ip: dict[str, str] = field(default_factory=dict)
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    org_index: dict[str, int] = {}
+    net_cidr: dict[str, str] = {}
+    svc_ip: dict[str, str] = {}
 
     def network_index(self, org_id: str) -> int:
         return self.org_index[org_id]
@@ -116,9 +114,7 @@ class Allocator:
 
         net_cidr: dict[str, str] = {}
         for net in org.networks:
-            cidr, mgmt_used = self._next_cidr(
-                net, network_index, front_pool, back_pool, mgmt_used
-            )
+            cidr, mgmt_used = self._next_cidr(net, network_index, front_pool, back_pool, mgmt_used)
             net_cidr[net.id] = cidr
 
         svc_ip = self._allocate_svc_ips(org, network_index, net_cidr)

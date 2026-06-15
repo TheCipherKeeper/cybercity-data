@@ -1,45 +1,41 @@
 """Loader tests: assembly from on-disk layout."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from cybercity_data import CityNetwork
-from cybercity_data.allocator import Allocator
-from cybercity_data.loader import NetworkLoader, find_org_dirs, load_network
+from cybercity_data.data.loader import NetworkLoader, find_org_dirs, load_network
+from cybercity_data.domain.allocator import Allocator
 
 
-def test_find_org_dirs_skips_underscore_dirs(tiny_path: Path) -> None:
-    bad = tiny_path / "organizations" / "_archive"
-    try:
-        bad.mkdir()
-        (bad / "config.yml").write_text("ignored: true\n", encoding="utf-8")
+def test_find_org_dirs_skips_underscore_dirs(tiny_path: Path, tmp_path: Path) -> None:
+    import shutil
 
-        orgs = find_org_dirs(tiny_path)
-        names = [p.name for p in orgs]
-        assert "_archive" not in names
-        assert {"hospital", "courthouse", "power"} <= set(names)
-    finally:
-        import shutil
+    target = tmp_path / "tiny-copy"
+    shutil.copytree(tiny_path, target)
+    bad = target / "organizations" / "_archive"
+    bad.mkdir()
+    (bad / "config.yml").write_text("ignored: true\n", encoding="utf-8")
 
-        shutil.rmtree(bad, ignore_errors=True)
+    orgs = find_org_dirs(target)
+    names = [p.name for p in orgs]
+    assert "_archive" not in names
+    assert {"hospital", "courthouse", "power"} <= set(names)
 
 
-def test_find_org_dirs_skips_dirs_without_config(tiny_path: Path) -> None:
-    emptydir = tiny_path / "organizations" / "_empty"
-    try:
-        emptydir.mkdir()
+def test_find_org_dirs_skips_dirs_without_config(tiny_path: Path, tmp_path: Path) -> None:
+    import shutil
 
-        orgs = find_org_dirs(tiny_path)
-        names = [p.name for p in orgs]
-        assert "_empty" not in names
-    finally:
-        import shutil
+    target = tmp_path / "tiny-copy"
+    shutil.copytree(tiny_path, target)
+    emptydir = target / "organizations" / "_empty"
+    emptydir.mkdir()
 
-        shutil.rmtree(emptydir, ignore_errors=True)
+    orgs = find_org_dirs(target)
+    names = [p.name for p in orgs]
+    assert "_empty" not in names
 
 
 def test_find_org_dirs_missing_organizations(tmp_path: Path) -> None:
@@ -65,11 +61,7 @@ def test_load_l003_id_mismatch(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "x").mkdir()
     (tmp_path / "organizations" / "x" / "config.yml").write_text(
-        "id: different\n"
-        "name: X\n"
-        "kind: government\n"
-        "networks: []\n"
-        "services: []\n",
+        "id: different\nname: X\nkind: government\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     network, issues = load_network(tmp_path)
@@ -80,11 +72,7 @@ def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "x").mkdir()
     (tmp_path / "organizations" / "x" / "config.yml").write_text(
-        "id: x\n"
-        "name: X\n"
-        "kind: not-a-kind\n"
-        "networks: []\n"
-        "services: []\n",
+        "id: x\nname: X\nkind: not-a-kind\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     network, issues = load_network(tmp_path)
@@ -96,12 +84,7 @@ def test_load_rejects_legacy_network_index(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "x").mkdir()
     (tmp_path / "organizations" / "x" / "config.yml").write_text(
-        "id: x\n"
-        "name: X\n"
-        "kind: government\n"
-        "network_index: 1\n"
-        "networks: []\n"
-        "services: []\n",
+        "id: x\nname: X\nkind: government\nnetwork_index: 1\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     network, issues = load_network(tmp_path)
@@ -128,8 +111,7 @@ def test_load_rejects_legacy_cidr(tmp_path: Path) -> None:
     )
     network, issues = load_network(tmp_path)
     assert any(
-        i.code == "L002" and "cidr" in i.path and "extra" in i.message.lower()
-        for i in issues
+        i.code == "L002" and "cidr" in i.path and "extra" in i.message.lower() for i in issues
     )
 
 
@@ -156,8 +138,7 @@ def test_load_rejects_legacy_bind_ip(tmp_path: Path) -> None:
     )
     network, issues = load_network(tmp_path)
     assert any(
-        i.code == "L002" and "bind_ip" in i.path and "extra" in i.message.lower()
-        for i in issues
+        i.code == "L002" and "bind_ip" in i.path and "extra" in i.message.lower() for i in issues
     )
 
 

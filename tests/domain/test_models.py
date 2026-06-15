@@ -1,7 +1,5 @@
 """Pydantic model-level tests: parsing, enums, patterns."""
 
-from __future__ import annotations
-
 import pytest
 from pydantic import ValidationError
 
@@ -34,9 +32,7 @@ def test_bad_org_kind_rejected() -> None:
 def test_id_pattern_kebab_case() -> None:
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "Has_Caps", "name": "x", "kind": "government"}
-        ],
+        "organizations": [{"id": "Has_Caps", "name": "x", "kind": "government"}],
     }
     with pytest.raises(ValidationError):
         CityNetwork.model_validate(raw)
@@ -62,9 +58,7 @@ def test_removed_network_index_rejected() -> None:
     """network_index is no longer part of the declarative model."""
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government", "network_index": 1}],
     }
     with pytest.raises(ValidationError):
         CityNetwork.model_validate(raw)
@@ -81,9 +75,7 @@ def test_version_pattern() -> None:
 def test_service_requires_host_fqdn() -> None:
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
             {
                 "id": "svc",
@@ -102,9 +94,7 @@ def test_service_requires_host_fqdn() -> None:
 def test_cve_id_pattern() -> None:
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
             {
                 "id": "svc",
@@ -128,9 +118,7 @@ def test_cve_id_pattern() -> None:
 def test_service_ports_pattern() -> None:
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
             {
                 "id": "svc",
@@ -150,9 +138,7 @@ def test_service_ports_pattern() -> None:
 def test_service_ports_accepts_valid() -> None:
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
             {
                 "id": "svc",
@@ -178,9 +164,7 @@ def test_known_weakness_rejected() -> None:
     """known_weakness was removed in the city-simulation refactor."""
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
             {
                 "id": "svc",
@@ -201,14 +185,24 @@ def test_attack_chain_rejected() -> None:
     """attack_chain was removed from links."""
     raw = {
         "version": "3.0.0",
-        "organizations": [
-            {"id": "x", "name": "X", "kind": "government"}
-        ],
+        "organizations": [{"id": "x", "name": "X", "kind": "government"}],
         "services": [
-            {"id": "a", "org_id": "x", "name": "A", "kind": "web",
-             "exposure": "public", "host": "a.example"},
-            {"id": "b", "org_id": "x", "name": "B", "kind": "web",
-             "exposure": "public", "host": "b.example"},
+            {
+                "id": "a",
+                "org_id": "x",
+                "name": "A",
+                "kind": "web",
+                "exposure": "public",
+                "host": "a.example",
+            },
+            {
+                "id": "b",
+                "org_id": "x",
+                "name": "B",
+                "kind": "web",
+                "exposure": "public",
+                "host": "b.example",
+            },
         ],
         "links": [
             {

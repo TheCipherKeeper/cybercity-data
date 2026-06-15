@@ -21,7 +21,7 @@ explicit links.
 
 - **Architecture & model:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - **Per-org layout conventions:** [`docs/ORGANIZATIONS.md`](docs/ORGANIZATIONS.md)
-- **Generated view:** [`build/network.md`](build/network.md)
+- **Generated view:** `build/network.md` (produced by `cybercity-data build .`)
 
 ## Quick start
 

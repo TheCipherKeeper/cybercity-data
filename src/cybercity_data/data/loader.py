@@ -19,31 +19,30 @@ Design goals for v3.0:
   * Optional `services/<svc-id>/` directories hold runtime assets for a service.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-from .check import Issue
-from .models import SCHEMA_VERSION, CityNetwork, Link, Organization, Service
+from ..domain.checker import Issue
+from ..domain.models import SCHEMA_VERSION, CityNetwork, Link, Organization, Service
 
-__all__ = ["NetworkLoader", "find_org_dirs", "load_network"]
+__all__ = ["NetworkLoader", "ServiceAssets", "find_org_dirs", "load_network"]
 
 
-class ServiceAssets:
+class ServiceAssets(BaseModel):
     """Optional on-disk assets attached to a service.
 
     Assets live under `organizations/<org_id>/services/<svc_id>/`.
     The canonical service description still lives in `config.yml`.
     """
 
-    def __init__(self, svc_id: str, org_id: str, path: Path) -> None:
-        self.svc_id = svc_id
-        self.org_id = org_id
-        self.path = path
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    svc_id: str
+    org_id: str
+    path: Path
 
 
 class NetworkLoader:
@@ -146,8 +145,7 @@ class NetworkLoader:
                     path=f"{rel}:id",
                     level="error",
                     message=(
-                        f"organization id {raw.get('id')!r} does not match "
-                        f"folder name {org_id!r}"
+                        f"organization id {raw.get('id')!r} does not match folder name {org_id!r}"
                     ),
                 )
             )
@@ -179,9 +177,7 @@ class NetworkLoader:
                 services.append(service)
                 service_ids.add(service.id)
             except ValidationError as exc:
-                self._record_validation_errors(
-                    f"{rel}:services[{j}]", exc, prefix="service"
-                )
+                self._record_validation_errors(f"{rel}:services[{j}]", exc, prefix="service")
 
         for j, item in enumerate(raw.get("links") or []):
             try:
@@ -194,9 +190,7 @@ class NetworkLoader:
     # ─────────────────────────────────────────────────────────────────
     # Service assets
     # ─────────────────────────────────────────────────────────────────
-    def _load_service_assets(
-        self, org_dir: Path, org_id: str, service_ids: set[str]
-    ) -> None:
+    def _load_service_assets(self, org_dir: Path, org_id: str, service_ids: set[str]) -> None:
         """Discover optional `services/<svc-id>/` asset directories."""
         assets_root = org_dir / "services"
         if not assets_root.is_dir():
@@ -220,16 +214,12 @@ class NetworkLoader:
                     )
                 )
                 continue
-            self.service_assets.append(
-                ServiceAssets(svc_id=svc_id, org_id=org_id, path=entry)
-            )
+            self.service_assets.append(ServiceAssets(svc_id=svc_id, org_id=org_id, path=entry))
 
     # ─────────────────────────────────────────────────────────────────
     # Errors
     # ─────────────────────────────────────────────────────────────────
-    def _record_validation_errors(
-        self, path: str, exc: ValidationError, prefix: str
-    ) -> None:
+    def _record_validation_errors(self, path: str, exc: ValidationError, prefix: str) -> None:
         for err in exc.errors():
             loc = ".".join(str(x) for x in err["loc"]) or "<root>"
             self.issues.append(

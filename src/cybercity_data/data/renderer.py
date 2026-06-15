@@ -1,19 +1,11 @@
-"""Build CI/CD artifacts from an assembled `CityNetwork`.
+"""Render build artifacts from an assembled `CityNetwork`.
 
-Produces:
-    build/network.json        — canonical machine-readable dump
-    build/network.md          — human-readable projection
-    build/schema.json         — JSON Schema for downstream validation
-    build/topology.json       — clean graph (nodes + edges) for UI
-    build/network.html        — self-contained interactive graph viewer
-    build/engine.zip          — bundled runtime package for cybercity-engine
+This module is an output adapter: it turns the domain model and allocation
+into string representations, but never writes to disk itself. Writing is the
+responsibility of `FileSystemGateway` and `EngineZipWriter`.
 """
 
-from __future__ import annotations
-
 import json
-import subprocess
-import zipfile
 from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,13 +13,16 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from .allocator import Allocation, Allocator
+from ..domain.allocator import Allocation, Allocator
+from ..domain.models import CityNetwork, OrgKind
+from .filesystem import FileSystemGateway
+from .git import GitChangesGateway
 from .loader import ServiceAssets
-from .models import CityNetwork, OrgKind
+from .zip import EngineZipWriter
 
-__all__ = ["Builder", "build_artifacts"]
+__all__ = ["ArtifactRenderer", "build_artifacts"]
 
-_STATIC_DIR = Path(__file__).parent / "static"
+_STATIC_DIR = Path(__file__).parent.parent / "static"
 
 
 _KIND_ORDER: tuple[OrgKind, ...] = (
@@ -42,67 +37,61 @@ _KIND_ORDER: tuple[OrgKind, ...] = (
 )
 
 
-class Builder:
-    """Build artifacts from a `CityNetwork`."""
+class ArtifactRenderer:
+    """Generate artifact content strings from a `CityNetwork`."""
 
     def __init__(
+        self,
+        static_dir: Path | None = None,
+        git: GitChangesGateway | None = None,
+    ) -> None:
+        self._static_dir = static_dir or _STATIC_DIR
+        self._git = git
+
+    def render(
         self,
         network: CityNetwork,
         allocation: Allocation | None = None,
         service_assets: list[ServiceAssets] | None = None,
-    ) -> None:
-        self.network = network
-        self.allocation = allocation or Allocator(network).allocate()
-        self.service_assets = service_assets or []
-
-    def build(self) -> dict[str, str]:
+    ) -> dict[str, str]:
+        """Return a mapping `{artifact_name: content}` for every standard artifact."""
+        allocation = allocation or Allocator(network).allocate()
+        assets = service_assets or []
         return {
-            "network.json": self._build_json(),
-            "network.md": self._build_markdown(),
-            "schema.json": self._build_schema(),
-            "topology.json": self._build_topology(),
-            "network.html": self._build_html(),
-            "attack-surface.json": self._build_attack_surface(),
-            "inventory.md": self._build_inventory(),
-            "changes.json": self._build_changes(),
+            "network.json": self._build_json(network),
+            "network.md": self._build_markdown(network, allocation),
+            "schema.json": self._build_schema(network),
+            "topology.json": self._build_topology(network, allocation),
+            "network.html": self._build_html(network, allocation),
+            "attack-surface.json": self._build_attack_surface(network, allocation),
+            "inventory.md": self._build_inventory(network, assets),
+            "changes.json": self._build_changes(network),
+            "runtime/engine.json": self._build_runtime(network, allocation),
         }
-
-    def render(self, target: Path | str) -> list[Path]:
-        target = Path(target)
-        target.mkdir(parents=True, exist_ok=True)
-        out: list[Path] = []
-        for rel, content in self.build().items():
-            path = target / rel
-            if path.exists() and path.read_text(encoding="utf-8") == content:
-                out.append(path.resolve())
-                continue
-            path.write_text(content, encoding="utf-8")
-            out.append(path.resolve())
-        zip_path = self._render_engine_zip(target)
-        out.append(zip_path.resolve())
-        return out
 
     # ─────────────────────────────────────────────────────────────────
     # Canonical dump
     # ─────────────────────────────────────────────────────────────────
-    def _build_json(self) -> str:
-        return self.network.model_dump_json(indent=2, by_alias=False)
+    @staticmethod
+    def _build_json(network: CityNetwork) -> str:
+        return network.model_dump_json(indent=2, by_alias=False)
 
     # ─────────────────────────────────────────────────────────────────
     # JSON Schema
     # ─────────────────────────────────────────────────────────────────
-    def _build_schema(self) -> str:
-        schema = self.network.__class__.model_json_schema()
+    @staticmethod
+    def _build_schema(network: CityNetwork) -> str:
+        schema = network.__class__.model_json_schema()
         return json.dumps(schema, indent=2, ensure_ascii=False)
 
     # ─────────────────────────────────────────────────────────────────
     # Topology graph
     # ─────────────────────────────────────────────────────────────────
-    def _topology_dict(self) -> dict[str, Any]:
-        org_name = {o.id: o.name for o in self.network.organizations}
+    def _topology_dict(self, network: CityNetwork, allocation: Allocation) -> dict[str, Any]:
+        org_name = {o.id: o.name for o in network.organizations}
 
         nodes: list[dict[str, Any]] = []
-        for s in sorted(self.network.services, key=lambda x: x.id):
+        for s in sorted(network.services, key=lambda x: x.id):
             nodes.append(
                 {
                     "id": s.id,
@@ -110,9 +99,9 @@ class Builder:
                     "description": s.description,
                     "org_id": s.org_id,
                     "org_name": org_name.get(s.org_id, ""),
-                    "network_index": self.allocation.network_index(s.org_id),
+                    "network_index": allocation.network_index(s.org_id),
                     "network_id": s.network_id,
-                    "bind_ip": self.allocation.bind_ip(s.id),
+                    "bind_ip": allocation.bind_ip(s.id),
                     "exposure": s.exposure,
                     "auth": s.auth,
                     "data_classification": s.data_classification,
@@ -126,7 +115,7 @@ class Builder:
 
         edges: list[dict[str, Any]] = []
         for link in sorted(
-            self.network.links,
+            network.links,
             key=lambda link: (link.from_service, link.to_service, link.kind),
         ):
             edges.append(
@@ -143,35 +132,35 @@ class Builder:
         return {
             "schema_version": 1,
             "meta": {
-                "source_version": self.network.version,
+                "source_version": network.version,
             },
             "summary": {
-                "organizations": len(self.network.organizations),
-                "networks": sum(len(o.networks) for o in self.network.organizations),
-                "services": len(self.network.services),
-                "links": len(self.network.links),
-                "mock_services": sum(1 for s in self.network.services if s.decoy is not None),
+                "organizations": len(network.organizations),
+                "networks": sum(len(o.networks) for o in network.organizations),
+                "services": len(network.services),
+                "links": len(network.links),
+                "mock_services": sum(1 for s in network.services if s.decoy is not None),
             },
             "nodes": nodes,
             "edges": edges,
         }
 
-    def _build_topology(self) -> str:
-        return json.dumps(self._topology_dict(), indent=2, ensure_ascii=False)
+    def _build_topology(self, network: CityNetwork, allocation: Allocation) -> str:
+        return json.dumps(self._topology_dict(network, allocation), indent=2, ensure_ascii=False)
 
     # ─────────────────────────────────────────────────────────────────
     # Interactive HTML viewer
     # ─────────────────────────────────────────────────────────────────
-    def _build_html(self) -> str:
-        template = (_STATIC_DIR / "network.html.tpl").read_text(encoding="utf-8")
-        d3_js = (_STATIC_DIR / "d3.v7.min.js").read_text(encoding="utf-8")
-        topology_json = json.dumps(self._topology_dict(), ensure_ascii=False)
+    def _build_html(self, network: CityNetwork, allocation: Allocation) -> str:
+        template = (self._static_dir / "network.html.tpl").read_text(encoding="utf-8")
+        d3_js = (self._static_dir / "d3.v7.min.js").read_text(encoding="utf-8")
+        topology_json = json.dumps(self._topology_dict(network, allocation), ensure_ascii=False)
         return template.replace("{{D3_JS}}", d3_js).replace("{{TOPOLOGY_JSON}}", topology_json)
 
     # ─────────────────────────────────────────────────────────────────
     # Engine runtime package
     # ─────────────────────────────────────────────────────────────────
-    def _build_runtime_dict(self) -> dict[str, Any]:
+    def _build_runtime_dict(self, network: CityNetwork, allocation: Allocation) -> dict[str, Any]:
         """Engine-ready runtime configuration.
 
         Builds per-service reachability, initial state, and routing hints.
@@ -179,18 +168,18 @@ class Builder:
         can_reach: dict[str, list[str]] = defaultdict(list)
         reachable_from: dict[str, list[str]] = defaultdict(list)
 
-        for link in self.network.links:
+        for link in network.links:
             can_reach[link.from_service].append(link.to_service)
             reachable_from[link.to_service].append(link.from_service)
 
         services: list[dict[str, Any]] = []
-        for s in sorted(self.network.services, key=lambda x: x.id):
+        for s in sorted(network.services, key=lambda x: x.id):
             entry: dict[str, Any] = {
                 "id": s.id,
                 "org_id": s.org_id,
                 "name": s.name,
                 "host": s.host,
-                "ip": self.allocation.bind_ip(s.id),
+                "ip": allocation.bind_ip(s.id),
                 "network_id": s.network_id,
                 "kind": s.kind,
                 "exposure": s.exposure,
@@ -233,7 +222,7 @@ class Builder:
                     "label": link.label,
                 }
                 for link in sorted(
-                    self.network.links,
+                    network.links,
                     key=lambda link: (link.from_service, link.to_service, link.kind),
                 )
             ],
@@ -249,83 +238,33 @@ class Builder:
                     o.id: {
                         "name": o.name,
                         "kind": o.kind,
-                        "network_index": self.allocation.network_index(o.id),
+                        "network_index": allocation.network_index(o.id),
                         "networks": [
                             {
                                 "id": n.id,
                                 "kind": n.kind,
-                                "cidr": self.allocation.cidr(n.id),
+                                "cidr": allocation.cidr(n.id),
                             }
                             for n in o.networks
                         ],
                     }
-                    for o in self.network.organizations
+                    for o in network.organizations
                 },
             },
         }
 
-    def _build_runtime(self) -> str:
-        return json.dumps(self._build_runtime_dict(), indent=2, ensure_ascii=False)
-
-    def _render_engine_zip(self, target: Path) -> Path:
-        """Bundle every artifact plus optional service assets into engine.zip."""
-        zip_path = target / "engine.zip"
-        ts = datetime.now(UTC).isoformat()
-        manifest = {
-            "schema_version": 1,
-            "generated_at": ts,
-            "source_version": self.network.version,
-            "summary": {
-                "organizations": len(self.network.organizations),
-                "networks": sum(len(o.networks) for o in self.network.organizations),
-                "services": len(self.network.services),
-                "links": len(self.network.links),
-                "asset_dirs": len(self.service_assets),
-            },
-            "files": {
-                "model/network.json": "canonical CityNetwork dump",
-                "model/topology.json": "clean graph for UI/simulator",
-                "model/schema.json": "JSON Schema for validation",
-                "runtime/engine.json": "engine runtime configuration",
-                "security/attack-surface.json": "publicly exposed services",
-                "views/network.md": "human-readable projection",
-                "views/network.html": "self-contained interactive viewer",
-                "views/inventory.md": "asset inventory",
-                "changes.json": "diff against previous build",
-                "manifest.json": "this file",
-            },
-        }
-
-        with zipfile.ZipFile(
-            zip_path, "w", compression=zipfile.ZIP_DEFLATED
-        ) as zf:
-            zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False))
-            zf.writestr("model/network.json", self._build_json())
-            zf.writestr("model/topology.json", self._build_topology())
-            zf.writestr("model/schema.json", self._build_schema())
-            zf.writestr("runtime/engine.json", self._build_runtime())
-            zf.writestr("security/attack-surface.json", self._build_attack_surface())
-            zf.writestr("views/network.md", self._build_markdown())
-            zf.writestr("views/network.html", self._build_html())
-            zf.writestr("views/inventory.md", self._build_inventory())
-            zf.writestr("changes.json", self._build_changes())
-
-            for asset in self.service_assets:
-                for file in sorted(asset.path.rglob("*")):
-                    if file.is_file():
-                        rel_path = file.relative_to(asset.path).as_posix()
-                        arcname = f"assets/services/{asset.org_id}/{asset.svc_id}/{rel_path}"
-                        zf.write(file, arcname=arcname)
-
-        return zip_path
+    def _build_runtime(self, network: CityNetwork, allocation: Allocation) -> str:
+        return json.dumps(
+            self._build_runtime_dict(network, allocation), indent=2, ensure_ascii=False
+        )
 
     # ─────────────────────────────────────────────────────────────────
     # Attack surface
     # ─────────────────────────────────────────────────────────────────
-    def _build_attack_surface(self) -> str:
-        org_name = {o.id: o.name for o in self.network.organizations}
+    def _build_attack_surface(self, network: CityNetwork, allocation: Allocation) -> str:
+        org_name = {o.id: o.name for o in network.organizations}
         surface: list[dict[str, Any]] = []
-        for s in sorted(self.network.services, key=lambda x: x.id):
+        for s in sorted(network.services, key=lambda x: x.id):
             if s.exposure != "public":
                 continue
             entry: dict[str, Any] = {
@@ -333,7 +272,7 @@ class Builder:
                 "org_id": s.org_id,
                 "org_name": org_name.get(s.org_id, ""),
                 "network_id": s.network_id,
-                "bind_ip": self.allocation.bind_ip(s.id),
+                "bind_ip": allocation.bind_ip(s.id),
                 "host": s.host,
                 "kind": s.kind,
                 "exposure": s.exposure,
@@ -355,7 +294,7 @@ class Builder:
         return json.dumps(
             {
                 "schema_version": 1,
-                "meta": {"source_version": self.network.version},
+                "meta": {"source_version": network.version},
                 "summary": {
                     "public_services": len(surface),
                     "mock_services": sum(1 for s in surface if s["is_mock"]),
@@ -369,33 +308,33 @@ class Builder:
     # ─────────────────────────────────────────────────────────────────
     # Asset inventory
     # ─────────────────────────────────────────────────────────────────
-    def _build_inventory(self) -> str:
+    @staticmethod
+    def _build_inventory(network: CityNetwork, service_assets: list[ServiceAssets]) -> str:
         ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         parts: list[str] = []
         parts.append("# CyberCity — Asset Inventory")
         parts.append("")
         parts.append(
             f"_Generated by `cybercity-data build` at {ts} "
-            f"from schema version **{self.network.version}**._"
+            f"from schema version **{network.version}**._"
         )
         parts.append("")
 
-        if not self.service_assets:
+        if not service_assets:
             parts.append("_(no service asset directories discovered)_")
             parts.append("")
             return "\n".join(parts)
 
         parts.append("| org | service | path | files |")
         parts.append("|---|---|---|---|")
-        for asset in sorted(self.service_assets, key=lambda a: (a.org_id, a.svc_id)):
+        for asset in sorted(service_assets, key=lambda a: (a.org_id, a.svc_id)):
             rel = asset.path.relative_to(asset.path.parents[1]).as_posix()
             file_count = sum(1 for _ in asset.path.rglob("*") if _.is_file())
             parts.append(f"| `{asset.org_id}` | `{asset.svc_id}` | `{rel}` | {file_count} |")
         parts.append("")
         parts.append("---")
         parts.append(
-            "_This file is generated. Edit files under "
-            "`organizations/<org>/services/<svc>/`._"
+            "_This file is generated. Edit files under `organizations/<org>/services/<svc>/`._"
         )
         parts.append("")
         return "\n".join(parts)
@@ -403,7 +342,7 @@ class Builder:
     # ─────────────────────────────────────────────────────────────────
     # Changes since last build (git-based)
     # ─────────────────────────────────────────────────────────────────
-    def _build_changes(self) -> str:
+    def _build_changes(self, network: CityNetwork) -> str:
         ts = datetime.now(UTC).isoformat()
         previous = self._previous_network_json()
         if previous is None:
@@ -425,7 +364,7 @@ class Builder:
             )
 
         previous_network = CityNetwork.model_validate_json(previous)
-        changes = self._diff_networks(previous_network, self.network)
+        changes = self._diff_networks(previous_network, network)
         return json.dumps(
             {
                 "schema_version": 1,
@@ -440,54 +379,22 @@ class Builder:
         )
 
     def _previous_network_json(self) -> str | None:
-        try:
-            result = subprocess.run(
-                ["git", "show", "HEAD:build/network.json"],
-                cwd=self._repo_root(),
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        if self._git is None:
             return None
+        return self._git.previous_network_json()
 
     def _git_head_ref(self) -> str | None:
-        try:
-            result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=self._repo_root(),
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout.strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        if self._git is None:
             return None
+        return self._git.head_ref()
 
     def _git_head_timestamp(self) -> str | None:
-        try:
-            result = subprocess.run(
-                ["git", "log", "-1", "--format=%cI"],
-                cwd=self._repo_root(),
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            return result.stdout.strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        if self._git is None:
             return None
+        return self._git.head_timestamp()
 
-    def _repo_root(self) -> Path:
-        """Best-effort repository root for git commands."""
-        # Prefer the directory of the first service asset; fall back to cwd.
-        if self.service_assets:
-            return self.service_assets[0].path.parents[2]
-        return Path.cwd()
-
-    def _diff_networks(
-        self, previous: CityNetwork, current: CityNetwork
-    ) -> dict[str, Any]:
+    @staticmethod
+    def _diff_networks(previous: CityNetwork, current: CityNetwork) -> dict[str, Any]:
         T = TypeVar("T", bound=BaseModel)
         K = TypeVar("K", str, tuple[str, str, str])
 
@@ -506,9 +413,7 @@ class Builder:
                 changes_local.append({"kind": name, "id": id_, "change": "removed"})
             for id_ in sorted(prev_ids & curr_ids):
                 if prev_map[id_].model_dump_json() != curr_map[id_].model_dump_json():
-                    changes_local.append(
-                        {"kind": name, "id": id_, "change": "modified"}
-                    )
+                    changes_local.append({"kind": name, "id": id_, "change": "modified"})
             return {
                 "added": len(curr_ids - prev_ids),
                 "removed": len(prev_ids - curr_ids),
@@ -526,14 +431,8 @@ class Builder:
             "service",
         )
         link_summary, link_changes = diff_category(
-            {
-                (link.from_service, link.to_service, link.kind): link
-                for link in previous.links
-            },
-            {
-                (link.from_service, link.to_service, link.kind): link
-                for link in current.links
-            },
+            {(link.from_service, link.to_service, link.kind): link for link in previous.links},
+            {(link.from_service, link.to_service, link.kind): link for link in current.links},
             "link",
         )
 
@@ -549,20 +448,20 @@ class Builder:
     # ─────────────────────────────────────────────────────────────────
     # Markdown projection
     # ─────────────────────────────────────────────────────────────────
-    def _build_markdown(self) -> str:
+    def _build_markdown(self, network: CityNetwork, allocation: Allocation) -> str:
         ts = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        n_orgs = len(self.network.organizations)
-        n_svcs = len(self.network.services)
-        n_links = len(self.network.links)
-        n_nets = sum(len(o.networks) for o in self.network.organizations)
-        n_mocks = sum(1 for s in self.network.services if s.decoy is not None)
+        n_orgs = len(network.organizations)
+        n_svcs = len(network.services)
+        n_links = len(network.links)
+        n_nets = sum(len(o.networks) for o in network.organizations)
+        n_mocks = sum(1 for s in network.services if s.decoy is not None)
 
         parts: list[str] = []
         parts.append("# CyberCity — Network Projection")
         parts.append("")
         parts.append(
             f"_Generated by `cybercity-data build` at {ts} "
-            f"from schema version **{self.network.version}**._"
+            f"from schema version **{network.version}**._"
         )
         parts.append("")
 
@@ -576,7 +475,7 @@ class Builder:
         parts.append(f"- **Имитационных сервисов:** {n_mocks}")
         parts.append("")
 
-        by_kind: Counter[str] = Counter(o.kind for o in self.network.organizations)
+        by_kind: Counter[str] = Counter(o.kind for o in network.organizations)
         parts.append("| Блок | Организаций |")
         parts.append("|---|---|")
         for kind in _KIND_ORDER:
@@ -589,26 +488,22 @@ class Builder:
         parts.append("")
         parts.append("| org | network | kind | cidr | services |")
         parts.append("|---|---|---|---|---|")
-        for org in sorted(self.network.organizations, key=lambda o: o.id):
+        for org in sorted(network.organizations, key=lambda o: o.id):
             for net in sorted(org.networks, key=lambda n: n.id):
-                svc_count = sum(
-                    1 for s in self.network.services if s.network_id == net.id
-                )
+                svc_count = sum(1 for s in network.services if s.network_id == net.id)
                 parts.append(
                     f"| `{org.id}` | `{net.id}` | {net.kind} | "
-                    f"{self.allocation.cidr(net.id)} | {svc_count} |"
+                    f"{allocation.cidr(net.id)} | {svc_count} |"
                 )
         parts.append("")
 
         # ── 3. Организации ───────────────────────────────────────────
         parts.append("## Организации")
         parts.append("")
-        parts.append(
-            "| id | name | kind | networks | services |"
-        )
-        parts.append("|---|---|---|---|---|---|")
-        svc_count_by_org = Counter(s.org_id for s in self.network.services)
-        for o in sorted(self.network.organizations, key=lambda x: x.id):
+        parts.append("| id | name | kind | networks | services |")
+        parts.append("|---|---|---|---|---|")
+        svc_count_by_org = Counter(s.org_id for s in network.services)
+        for o in sorted(network.organizations, key=lambda x: x.id):
             parts.append(
                 f"| `{o.id}` | {o.name} | {o.kind} | "
                 f"{len(o.networks)} | {svc_count_by_org.get(o.id, 0)} |"
@@ -618,15 +513,15 @@ class Builder:
         # ── 4. Сетевая связность ─────────────────────────────────────
         parts.append("## Сетевая связность")
         parts.append("")
-        if self.network.links:
-            svc_to_org: dict[str, str] = {s.id: s.org_id for s in self.network.services}
+        if network.links:
+            svc_to_org: dict[str, str] = {s.id: s.org_id for s in network.services}
             parts.append(
                 "| from_org | from_service | to_org | to_service "
                 "| kind | protocol | encryption | label |"
             )
             parts.append("|---|---|---|---|---|---|---|---|")
             for link in sorted(
-                self.network.links,
+                network.links,
                 key=lambda link: (link.from_service, link.to_service, link.kind),
             ):
                 from_org = svc_to_org.get(link.from_service, "?")
@@ -650,7 +545,7 @@ class Builder:
             "classification | criticality | software | ports | os_hint | mock |"
         )
         parts.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-        for s in sorted(self.network.services, key=lambda x: x.id):
+        for s in sorted(network.services, key=lambda x: x.id):
             sw = ""
             if s.software is not None:
                 sw = f"{s.software.vendor}/{s.software.product}"
@@ -658,7 +553,7 @@ class Builder:
                     sw += f" {s.software.version}"
             ports = ", ".join(s.ports)
             mock = s.decoy.kind if s.decoy else ""
-            bind_ip = self.allocation.bind_ip(s.id)
+            bind_ip = allocation.bind_ip(s.id)
             os_hint = s.os_hint or ""
             parts.append(
                 f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {bind_ip} | "
@@ -670,7 +565,7 @@ class Builder:
         # ── 6. Имитационные сервисы ───────────────────────────────────
         parts.append("## Имитационные сервисы")
         parts.append("")
-        mocks = [s for s in self.network.services if s.decoy is not None]
+        mocks = [s for s in network.services if s.decoy is not None]
         if mocks:
             parts.append("| id | org | network | bind_ip | mock_kind | fingerprint | os_hint |")
             parts.append("|---|---|---|---|---|---|---|")
@@ -678,7 +573,7 @@ class Builder:
                 assert s.decoy is not None
                 parts.append(
                     f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | "
-                    f"{self.allocation.bind_ip(s.id)} | "
+                    f"{allocation.bind_ip(s.id)} | "
                     f"{s.decoy.kind} | {s.decoy.fingerprint} | {s.decoy.os_hint or ''} |"
                 )
         else:
@@ -691,10 +586,27 @@ class Builder:
         return "\n".join(parts)
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Backward-compat free function
+# ─────────────────────────────────────────────────────────────────────
 def build_artifacts(
     network: CityNetwork,
     target: Path | str,
     allocation: Allocation | None = None,
+    repo_root: Path | str | None = None,
 ) -> list[Path]:
-    """One-shot build: write artifacts under `target/`."""
-    return Builder(network, allocation=allocation).render(target)
+    """One-shot convenience: render and write artifacts under `target/`.
+
+    This wrapper is preserved for callers that used the historical
+    `cybercity_data.build_artifacts()` free function. New code should
+    prefer `ArtifactRenderer` + `FileSystemGateway` + `EngineZipWriter`.
+    """
+    target = Path(target).resolve()
+    repo_root = Path(repo_root).resolve() if repo_root is not None else Path.cwd()
+    allocation = allocation or Allocator(network).allocate()
+    renderer = ArtifactRenderer(git=GitChangesGateway(repo_root))
+    artifacts = renderer.render(network, allocation, [])
+    fs = FileSystemGateway(repo_root)
+    paths = fs.write_artifacts(target, artifacts)
+    zip_path = EngineZipWriter().bundle(target, artifacts, network, [])
+    return [*paths, zip_path]

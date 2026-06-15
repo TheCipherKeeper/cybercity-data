@@ -1,10 +1,8 @@
 """Cross-field rule tests."""
 
-from __future__ import annotations
-
 from cybercity_data import CityNetwork, check
-from cybercity_data.allocator import Allocator
-from cybercity_data.models import Network, Organization, Service
+from cybercity_data.domain.allocator import Allocator
+from cybercity_data.domain.models import Network, Organization, Service
 
 
 def _mutate(network: CityNetwork, *, services=None, links=None, organizations=None):
@@ -53,7 +51,7 @@ def _minimal_network(**overrides):
     return CityNetwork(**defaults)
 
 
-def _check(network: CityNetwork) -> None:
+def _check(network: CityNetwork):
     """Allocate with a fixed seed and run the checker."""
     allocation = Allocator(network, seed=0).allocate()
     return check(network, allocation=allocation)
@@ -137,8 +135,7 @@ def test_network_belongs_missing_network_id(tiny_network: CityNetwork) -> None:
     )
     report = _check(bad)
     assert any(
-        i.code == "network-belongs" and "has no network_id" in i.message
-        for i in report.errors
+        i.code == "network-belongs" and "has no network_id" in i.message for i in report.errors
     )
 
 
@@ -259,7 +256,4 @@ def test_decoy_write_real() -> None:
         ],
     )
     report = _check(network)
-    assert any(
-        i.code == "decoy-write-real" and "decoy service" in i.message
-        for i in report.errors
-    )
+    assert any(i.code == "decoy-write-real" and "decoy service" in i.message for i in report.errors)

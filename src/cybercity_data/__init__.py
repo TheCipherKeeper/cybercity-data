@@ -1,13 +1,15 @@
 """cybercity-data — canonical declarative city model.
 
-Public surface: pydantic models, loader, checker, and builder.
+Public surface: pydantic models, loader, checker, allocator, and renderer.
 """
 
-from .allocator import Allocation, AllocationError, Allocator
-from .build import Builder, build_artifacts
-from .check import Issue, NetworkChecker, Report, check
-from .loader import NetworkLoader, load_network
-from .models import (
+from .__version__ import __version__
+from .data.loader import NetworkLoader, ServiceAssets, load_network
+from .data.renderer import ArtifactRenderer as Builder
+from .data.renderer import build_artifacts
+from .domain.allocator import Allocation, AllocationError, Allocator
+from .domain.checker import Issue, NetworkChecker, Report, check
+from .domain.models import (
     SCHEMA_VERSION,
     AuthMethod,
     CityNetwork,
@@ -29,9 +31,9 @@ from .models import (
     SvcKind,
 )
 
-__version__ = "0.4.0"
-
 __all__ = [
+    # Version
+    "__version__",
     # Allocation
     "Allocation",
     "AllocationError",
@@ -56,14 +58,16 @@ __all__ = [
     "Service",
     "Software",
     "SvcKind",
-    # Pipeline
+    # Validation
     "Issue",
     "Report",
     "NetworkChecker",
     "check",
+    # Loading / IO
     "NetworkLoader",
+    "ServiceAssets",
     "load_network",
+    # Rendering
     "Builder",
     "build_artifacts",
-    "__version__",
 ]

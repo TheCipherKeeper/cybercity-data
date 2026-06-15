@@ -1,13 +1,12 @@
 """Property-based tests for the pipeline."""
 
-from __future__ import annotations
-
 import hypothesis.strategies as st
 from hypothesis import given, settings
 
-from cybercity_data import Builder, CityNetwork, check
-from cybercity_data.allocator import Allocator
-from cybercity_data.models import Link, Network, Organization, Service
+from cybercity_data import CityNetwork, check
+from cybercity_data.data.renderer import ArtifactRenderer
+from cybercity_data.domain.allocator import Allocator
+from cybercity_data.domain.models import Link, Network, Organization, Service
 
 _SVC_KINDS = [
     "web",
@@ -16,12 +15,22 @@ _SVC_KINDS = [
     "identity",
     "db",
     "file-share",
+    "rmm",
     "vpn",
+    "ot",
+    "cctv",
     "mail",
     "dns",
     "ntp",
     "backup",
     "log",
+    "erp",
+    "hrms",
+    "billing",
+    "tickets",
+    "wiki",
+    "crm",
+    "pharmacy-front",
     "iot",
 ]
 
@@ -94,6 +103,12 @@ def test_check_and_build_never_crash(network: CityNetwork) -> None:
     allocation = Allocator(network, seed=0).allocate()
     report = check(network, allocation=allocation)
     assert isinstance(report.issues, list)
-    artifacts = Builder(network, allocation=allocation).build()
-    for name in ("network.json", "topology.json", "attack-surface.json", "changes.json"):
+    artifacts = ArtifactRenderer().render(network, allocation=allocation, service_assets=[])
+    for name in (
+        "network.json",
+        "topology.json",
+        "attack-surface.json",
+        "changes.json",
+        "runtime/engine.json",
+    ):
         assert name in artifacts
