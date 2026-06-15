@@ -154,6 +154,20 @@ links:
     encryption: tls
     label: "exhibits DB backup"
 
+  - from_service: museum-cms
+    to_service: msp-av
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "AV agent heartbeat"
+
+  - from_service: museum-cms
+    to_service: msp-ticketing
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "raise support ticket with MSP"
+
   - from_service: museum-web
     to_service: hall-idp
     kind: auth

@@ -4,8 +4,10 @@ kind: msp
 network_index: 17
 
 description: |
-  Городской MSP, обслуживающий малый и средний бизнес. Предоставляет RMM,
-  удалённую поддержку, антивирусную консоль и резервное копирование.
+  Городской MSP, обслуживающий малый и средний бизнес города (розница,
+  образование, медиа). Предоставляет RMM через vendor VPN, удалённую поддержку
+  (ticketing), антивирусную консоль, резервное копирование как услугу и
+  customer portal.
 
 networks:
   - id: msp-dmz
@@ -42,7 +44,7 @@ services:
     host: tickets.msp.corp
     network_id: msp-lan
     bind_ip: 10.17.129.10
-    auth: sso
+    auth: mfa
     data_classification: internal
     software:
       vendor: ConnectWise
@@ -115,6 +117,22 @@ services:
     ports: [tcp/443, tcp/80]
     criticality: medium
 
+  - id: msp-vpn
+    name: "MSP vendor VPN concentrator"
+    kind: vpn
+    exposure: mgmt
+    host: vpn.msp.corp
+    network_id: msp-mgmt
+    bind_ip: 10.17.253.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: OpenVPN
+      product: openvpn
+      version: "2.6.0"
+    ports: [udp/1194]
+    criticality: high
+
 links:
   - from_service: msp-web
     to_service: hall-dns
@@ -157,3 +175,87 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "config DB logs"
+
+  - from_service: msp-vpn
+    to_service: market-erp
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to supermarket ERP"
+
+  - from_service: msp-vpn
+    to_service: hotel-pms
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to hotel PMS"
+
+  - from_service: msp-vpn
+    to_service: stadium-tickets
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to stadium ticketing"
+
+  - from_service: msp-vpn
+    to_service: school-lms
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to school LMS"
+
+  - from_service: msp-vpn
+    to_service: museum-cms
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to museum CMS"
+
+  - from_service: msp-vpn
+    to_service: news-cms
+    kind: vendor-vpn
+    protocol: udp/1194
+    encryption: mtls
+    label: "RMM VPN to news CMS"
+
+  - from_service: msp-backup
+    to_service: market-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup supermarket sales DB"
+
+  - from_service: msp-backup
+    to_service: hotel-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup hotel guest DB"
+
+  - from_service: msp-backup
+    to_service: stadium-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup stadium events DB"
+
+  - from_service: msp-backup
+    to_service: school-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup school student records"
+
+  - from_service: msp-backup
+    to_service: museum-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup museum exhibits DB"
+
+  - from_service: msp-backup
+    to_service: news-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "backup news articles DB"

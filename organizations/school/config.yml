@@ -212,6 +212,20 @@ links:
     encryption: tls
     label: "backup student DB"
 
+  - from_service: school-lms
+    to_service: msp-av
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "AV agent heartbeat"
+
+  - from_service: school-lms
+    to_service: msp-ticketing
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "raise support ticket with MSP"
+
   - from_service: school-print
     to_service: hall-dns
     kind: dns-query
