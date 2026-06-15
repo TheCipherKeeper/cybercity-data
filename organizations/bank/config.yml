@@ -12,10 +12,10 @@ description: |
 networks:
   - id: bank-dmz
     kind: dmz
-    cidr: 10.2.0.0/24
+    cidr: 10.2.1.0/24
   - id: bank-lan
     kind: lan
-    cidr: 10.2.128.0/24
+    cidr: 10.2.129.0/24
   - id: bank-mgmt
     kind: mgmt
     cidr: 10.2.253.0/24
@@ -27,7 +27,7 @@ services:
     exposure: public
     host: portal.bank.corp
     network_id: bank-dmz
-    bind_ip: 10.2.0.10
+    bind_ip: 10.2.1.10
     auth: sso
     data_classification: public
     software:
@@ -43,7 +43,7 @@ services:
     exposure: intranet
     host: api.bank.corp
     network_id: bank-lan
-    bind_ip: 10.2.128.10
+    bind_ip: 10.2.129.10
     auth: mfa
     data_classification: pci
     software:
@@ -59,7 +59,7 @@ services:
     exposure: intranet
     host: idp.bank.corp
     network_id: bank-lan
-    bind_ip: 10.2.128.11
+    bind_ip: 10.2.129.11
     auth: mfa
     data_classification: restricted
     software:
@@ -75,7 +75,7 @@ services:
     exposure: intranet
     host: db.bank.corp
     network_id: bank-lan
-    bind_ip: 10.2.128.12
+    bind_ip: 10.2.129.12
     auth: certificate
     data_classification: pci
     software:
@@ -84,6 +84,22 @@ services:
       version: "19.0.0.0"
     ports: [tcp/1521]
     criticality: critical
+
+  - id: bank-backup
+    name: "Bank backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.bank.corp
+    network_id: bank-lan
+    bind_ip: 10.2.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
 
 links:
   - from_service: bank-web
@@ -120,3 +136,38 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "web audit logs"
+
+  - from_service: bank-web
+    to_service: bank-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: bank-api
+    to_service: bank-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "API MFA via Bank SSO"
+
+  - from_service: bank-api
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "payments API time sync"
+
+  - from_service: bank-backup
+    to_service: bank-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "core ledger backup"
+
+  - from_service: bank-backup
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "backup audit logs"

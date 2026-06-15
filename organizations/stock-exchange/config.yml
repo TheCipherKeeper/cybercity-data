@@ -99,6 +99,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: stock-idp
+    name: "Stock exchange SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.stock-exchange.corp
+    network_id: stock-exchange-lan
+    bind_ip: 10.39.129.14
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: stock-web
     to_service: hall-dns
@@ -114,12 +130,47 @@ links:
     encryption: none
     label: "trading engine DNS resolution"
 
+  - from_service: stock-web
+    to_service: stock-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: stock-trading
+    to_service: stock-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "trading MFA via Stock SSO"
+
+  - from_service: stock-trading
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "trading engine time sync"
+
   - from_service: stock-trading
     to_service: stock-db
     kind: db-read
     protocol: tcp/5432
     encryption: tls
     label: "orders and trades"
+
+  - from_service: stock-trading
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "trade settlement"
+
+  - from_service: stock-trading
+    to_service: crypto-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "crypto-asset settlement"
 
   - from_service: market-data
     to_service: stock-db

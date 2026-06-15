@@ -122,6 +122,34 @@ links:
     encryption: tls
     label: "policy and claims data"
 
+  - from_service: ins-api
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "premium and claim payments"
+
+  - from_service: ins-web
+    to_service: ins-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: ins-api
+    to_service: ins-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "API MFA via Insurance SSO"
+
+  - from_service: ins-api
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "claims API time sync"
+
   - from_service: ins-db
     to_service: hall-log
     kind: log-sink

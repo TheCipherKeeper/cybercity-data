@@ -123,6 +123,13 @@ links:
     label: "orders and balances"
 
   - from_service: crypto-api
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "trading API time sync"
+
+  - from_service: crypto-api
     to_service: crypto-wallet
     kind: db-read
     protocol: tcp/443

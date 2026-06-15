@@ -122,6 +122,13 @@ links:
     label: "filing reads taxpayer records"
 
   - from_service: tax-filing
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "tax payment processing"
+
+  - from_service: tax-filing
     to_service: tax-idp
     kind: auth
     protocol: tcp/443

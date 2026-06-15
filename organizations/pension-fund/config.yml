@@ -121,6 +121,41 @@ links:
     encryption: tls
     label: "pension accounts"
 
+  - from_service: pension-api
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "pension payouts"
+
+  - from_service: pension-api
+    to_service: hall-web
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "municipal resident verification"
+
+  - from_service: pension-web
+    to_service: pension-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: pension-api
+    to_service: pension-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "API MFA via Pension SSO"
+
+  - from_service: pension-api
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "pension API time sync"
+
   - from_service: pension-db
     to_service: hall-log
     kind: log-sink
