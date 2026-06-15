@@ -171,3 +171,31 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "patient DB backup"
+
+  - from_service: ambulance-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: ambulance-dispatch
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "dispatch MFA via City Hall"
+
+  - from_service: ambulance-ehr
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "EHR MFA via City Hall"
+
+  - from_service: ambulance-ehr
+    to_service: hosp-db
+    kind: db-write
+    protocol: tcp/5432
+    encryption: tls
+    label: "admit patient record to hospital"

@@ -178,6 +178,13 @@ links:
     encryption: tls
     label: "traffic signal control for emergency routes"
 
+  - from_service: eoc-dispatch
+    to_service: hosp-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "hospital bed availability"
+
   - from_service: eoc-backup
     to_service: eoc-db
     kind: backup-of

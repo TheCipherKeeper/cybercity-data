@@ -43,7 +43,7 @@ services:
     host: emr.hospital.med
     network_id: hospital-lan
     bind_ip: 10.3.129.10
-    auth: sso
+    auth: mfa
     data_classification: phi
     software:
       vendor: Epic
@@ -142,6 +142,34 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "patient DB backup"
+
+  - from_service: hosp-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: hosp-emr
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "EMR MFA via City Hall"
+
+  - from_service: hosp-emr
+    to_service: disease-lab
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "report infectious disease tests"
+
+  - from_service: hosp-pacs
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "PACS SSO via City Hall"
 
   - from_service: hosp-emr
     to_service: hall-log

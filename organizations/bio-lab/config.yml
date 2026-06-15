@@ -142,3 +142,38 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "samples DB backup"
+
+  - from_service: bio-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: bio-lims
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "LIMS SSO via City Hall"
+
+  - from_service: bio-lims
+    to_service: disease-lab
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "report lab results to disease control"
+
+  - from_service: bio-lims
+    to_service: hosp-emr
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "send sequencing results to hospital"
+
+  - from_service: bio-lims
+    to_service: clinic-emr
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "send lab results to clinic"
