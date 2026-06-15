@@ -111,6 +111,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: stadium-idp
+    name: "Stadium SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.stadium.retail
+    network_id: stadium-lan
+    bind_ip: 10.28.129.14
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: stadium-web
     to_service: hall-dns
@@ -118,6 +134,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: stadium-web
+    to_service: taxi-app
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "fan ride booking"
 
   - from_service: stadium-tickets
     to_service: hall-dns
@@ -160,6 +183,20 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "DB audit logs"
+
+  - from_service: stadium-web
+    to_service: stadium-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: stadium-tickets
+    to_service: stadium-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "ticketing SSO"
 
   - from_service: stadium-backup
     to_service: stadium-db

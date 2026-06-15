@@ -156,6 +156,13 @@ links:
     encryption: none
     label: "mall website DNS resolution"
 
+  - from_service: mall-web
+    to_service: logistics-web
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "mall marketplace delivery partner"
+
   - from_service: mall-wifi
     to_service: hall-dns
     kind: dns-query
@@ -208,6 +215,6 @@ links:
   - from_service: mall-backup
     to_service: mall-db
     kind: backup-of
-    protocol: tcp/3306
+    protocol: tcp/9392
     encryption: tls
     label: "backup loyalty DB"

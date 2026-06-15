@@ -23,7 +23,7 @@ services:
     name: "Postal portal"
     kind: web
     exposure: public
-    host: portal.postal-service.corp
+    host: portal.postal-service.retail
     network_id: postal-service-dmz
     bind_ip: 10.38.1.10
     auth: sso
@@ -39,7 +39,7 @@ services:
     name: "Parcel tracking"
     kind: api
     exposure: intranet
-    host: tracking.postal-service.corp
+    host: tracking.postal-service.retail
     network_id: postal-service-lan
     bind_ip: 10.38.129.10
     auth: sso
@@ -55,7 +55,7 @@ services:
     name: "Postal parcels DB"
     kind: db
     exposure: intranet
-    host: db.postal-service.corp
+    host: db.postal-service.retail
     network_id: postal-service-lan
     bind_ip: 10.38.129.11
     auth: certificate
@@ -71,7 +71,7 @@ services:
     name: "Post office Wi-Fi"
     kind: iot
     exposure: public
-    host: wifi.postal-service.corp
+    host: wifi.postal-service.retail
     network_id: postal-service-dmz
     bind_ip: 10.38.1.11
     auth: none
@@ -83,7 +83,7 @@ services:
     name: "Postal backup"
     kind: backup
     exposure: intranet
-    host: backup.postal-service.corp
+    host: backup.postal-service.retail
     network_id: postal-service-lan
     bind_ip: 10.38.129.12
     auth: certificate
@@ -94,6 +94,22 @@ services:
       version: "12.0"
     ports: [tcp/9392]
     criticality: medium
+
+  - id: postal-idp
+    name: "Postal SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.postal-service.retail
+    network_id: postal-service-lan
+    bind_ip: 10.38.129.13
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
 
 links:
   - from_service: post-web
@@ -130,6 +146,20 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "DB audit logs"
+
+  - from_service: post-web
+    to_service: postal-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: post-tracking
+    to_service: postal-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "tracking SSO"
 
   - from_service: post-backup
     to_service: post-db

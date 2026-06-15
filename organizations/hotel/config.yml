@@ -111,6 +111,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: hotel-idp
+    name: "Hotel SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.hotel.retail
+    network_id: hotel-lan
+    bind_ip: 10.25.129.14
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: hotel-web
     to_service: hall-dns
@@ -118,6 +134,13 @@ links:
     protocol: udp/53
     encryption: none
     label: "public portal DNS resolution"
+
+  - from_service: hotel-web
+    to_service: taxi-app
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "guest taxi booking"
 
   - from_service: hotel-pms
     to_service: hall-dns
@@ -160,6 +183,27 @@ links:
     protocol: udp/53
     encryption: none
     label: "POS DNS resolution"
+
+  - from_service: hotel-web
+    to_service: hotel-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: hotel-pms
+    to_service: hotel-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "PMS SSO"
+
+  - from_service: hotel-pos
+    to_service: hotel-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "POS SSO"
 
   - from_service: hotel-backup
     to_service: hotel-db

@@ -99,6 +99,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: supermarket-idp
+    name: "Supermarket SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.supermarket.retail
+    network_id: supermarket-lan
+    bind_ip: 10.26.129.14
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: market-web
     to_service: hall-dns
@@ -135,12 +151,40 @@ links:
     encryption: tls
     label: "inventory and sales"
 
+  - from_service: market-erp
+    to_service: logistics-tracking
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "online order delivery tracking"
+
   - from_service: market-db
     to_service: hall-log
     kind: log-sink
     protocol: tcp/9200
     encryption: tls
     label: "DB audit logs"
+
+  - from_service: market-web
+    to_service: supermarket-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: market-pos
+    to_service: supermarket-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "POS SSO"
+
+  - from_service: market-erp
+    to_service: supermarket-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "ERP SSO"
 
   - from_service: market-backup
     to_service: market-db

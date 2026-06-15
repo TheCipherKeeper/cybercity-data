@@ -111,6 +111,22 @@ services:
     ports: [tcp/9392]
     criticality: high
 
+  - id: taxi-idp
+    name: "Taxi SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.taxi.retail
+    network_id: taxi-lan
+    bind_ip: 10.27.129.15
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
 links:
   - from_service: taxi-app
     to_service: hall-dns
@@ -160,6 +176,20 @@ links:
     protocol: udp/53
     encryption: none
     label: "billing DNS resolution"
+
+  - from_service: taxi-app
+    to_service: taxi-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "app backend SSO"
+
+  - from_service: taxi-dispatch
+    to_service: taxi-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "dispatch SSO"
 
   - from_service: taxi-backup
     to_service: taxi-db

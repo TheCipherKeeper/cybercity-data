@@ -24,7 +24,7 @@ services:
     name: "Logistics public portal"
     kind: web
     exposure: public
-    host: logistics.city.gov
+    host: portal.logistics.retail
     network_id: logistics-dmz
     bind_ip: 10.46.1.10
     auth: sso
@@ -40,7 +40,7 @@ services:
     name: "Logistics tracking API"
     kind: api
     exposure: intranet
-    host: tracking.logistics.corp
+    host: tracking.logistics.retail
     network_id: logistics-lan
     bind_ip: 10.46.129.10
     auth: sso
@@ -56,7 +56,7 @@ services:
     name: "Logistics warehouse WMS"
     kind: erp
     exposure: intranet
-    host: warehouse.logistics.corp
+    host: warehouse.logistics.retail
     network_id: logistics-lan
     bind_ip: 10.46.129.11
     auth: sso
@@ -72,7 +72,7 @@ services:
     name: "Logistics parcels DB"
     kind: db
     exposure: intranet
-    host: db.logistics.corp
+    host: db.logistics.retail
     network_id: logistics-lan
     bind_ip: 10.46.129.12
     auth: certificate
@@ -88,7 +88,7 @@ services:
     name: "Logistics fleet GPS"
     kind: iot
     exposure: intranet
-    host: gps.logistics.corp
+    host: gps.logistics.retail
     network_id: logistics-lan
     bind_ip: 10.46.129.13
     auth: certificate
@@ -104,7 +104,7 @@ services:
     name: "Logistics backup server"
     kind: backup
     exposure: intranet
-    host: backup.logistics.corp
+    host: backup.logistics.retail
     network_id: logistics-lan
     bind_ip: 10.46.129.14
     auth: certificate
@@ -114,6 +114,22 @@ services:
       product: backup-replication
       version: "12.0"
     ports: [tcp/9392]
+    criticality: high
+
+  - id: logistics-idp
+    name: "Logistics SSO"
+    kind: identity
+    exposure: intranet
+    host: idp.logistics.retail
+    network_id: logistics-lan
+    bind_ip: 10.46.129.15
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
     criticality: high
 
 links:
@@ -158,6 +174,48 @@ links:
     protocol: udp/123
     encryption: none
     label: "fleet time sync"
+
+  - from_service: logistics-web
+    to_service: logistics-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: logistics-tracking
+    to_service: logistics-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "tracking SSO"
+
+  - from_service: logistics-warehouse
+    to_service: logistics-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "WMS SSO"
+
+  - from_service: logistics-warehouse
+    to_service: port-cargo
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "inbound container lookup"
+
+  - from_service: logistics-tracking
+    to_service: post-tracking
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "postal parcel status sync"
+
+  - from_service: logistics-tracking
+    to_service: rail-ops
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "intermodal rail status"
 
   - from_service: logistics-backup
     to_service: logistics-db
