@@ -5,8 +5,8 @@ network_index: 5
 
 description: |
   Городская школьная сеть. Обслуживает ученический портал, систему управления
-  обучением (LMS), базу данных учащихся и видеонаблюдение. Платежи и идентификация
-  частично делегированы внешним городским сервисам.
+  обучением (LMS), базу данных учащихся и видеонаблюдение. Идентификация частично
+  делегирована внешним городским сервисам (федерация с City Hall SSO).
 
 networks:
   - id: school-dmz
@@ -208,7 +208,7 @@ links:
   - from_service: school-backup
     to_service: school-db
     kind: backup-of
-    protocol: tcp/5432
+    protocol: tcp/9392
     encryption: tls
     label: "backup student DB"
 
@@ -218,3 +218,10 @@ links:
     protocol: udp/53
     encryption: none
     label: "printer DNS resolution"
+
+  - from_service: school-idp
+    to_service: hall-idp
+    kind: trusts
+    protocol: tcp/443
+    encryption: sso-trust
+    label: "federate school SSO with City Hall"

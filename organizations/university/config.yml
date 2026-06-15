@@ -66,7 +66,7 @@ services:
       product: postgresql
       version: "15.4"
     ports: [tcp/5432]
-    criticality: high
+    criticality: critical
 
   - id: uni-wifi
     name: "University guest Wi-Fi"
@@ -94,7 +94,7 @@ services:
       product: backup-replication
       version: "12.0"
     ports: [tcp/9392]
-    criticality: medium
+    criticality: high
 
 links:
   - from_service: uni-web
@@ -145,3 +145,24 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "LMS audit logs"
+
+  - from_service: uni-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: uni-lms
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "LMS SSO"
+
+  - from_service: uni-lms
+    to_service: nii-hpc
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "student research compute"

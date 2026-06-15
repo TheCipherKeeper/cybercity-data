@@ -149,3 +149,17 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "research DB backup"
+
+  - from_service: nii-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: nii-hpc
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "HPC time sync"
