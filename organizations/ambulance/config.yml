@@ -1,0 +1,173 @@
+id: ambulance
+name: "City Ambulance Service"
+kind: healthcare
+network_index: 42
+
+description: |
+  Городская служба скорой медицинской помощи. Диспетчеризация выездов,
+  GPS-мониторинг бригад, интеграция с больницами и ЕЦ экстренного реагирования.
+
+networks:
+  - id: ambulance-dmz
+    kind: dmz
+    cidr: 10.42.1.0/24
+  - id: ambulance-lan
+    kind: lan
+    cidr: 10.42.129.0/24
+  - id: ambulance-mgmt
+    kind: mgmt
+    cidr: 10.42.253.0/24
+
+services:
+  - id: ambulance-web
+    name: "Ambulance public portal"
+    kind: web
+    exposure: public
+    host: ambulance.city.gov
+    network_id: ambulance-dmz
+    bind_ip: 10.42.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: ambulance-dispatch
+    name: "Ambulance dispatch"
+    kind: tickets
+    exposure: intranet
+    host: dispatch.ambulance.med
+    network_id: ambulance-lan
+    bind_ip: 10.42.129.10
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Custom
+      product: ambulance-dispatch
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: ambulance-ehr
+    name: "Ambulance EHR"
+    kind: web
+    exposure: intranet
+    host: ehr.ambulance.med
+    network_id: ambulance-lan
+    bind_ip: 10.42.129.11
+    auth: mfa
+    data_classification: phi
+    software:
+      vendor: Epic
+      product: epic
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: ambulance-db
+    name: "Ambulance patient DB"
+    kind: db
+    exposure: intranet
+    host: db.ambulance.med
+    network_id: ambulance-lan
+    bind_ip: 10.42.129.12
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: ambulance-gps
+    name: "Ambulance fleet GPS"
+    kind: iot
+    exposure: intranet
+    host: gps.ambulance.med
+    network_id: ambulance-lan
+    bind_ip: 10.42.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: internal
+      product: fleet-tracker
+      version: "2.0.0"
+    ports: [tcp/5000]
+    criticality: high
+
+  - id: ambulance-backup
+    name: "Ambulance backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.ambulance.med
+    network_id: ambulance-lan
+    bind_ip: 10.42.129.14
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: ambulance-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: ambulance-dispatch
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "dispatch DNS"
+
+  - from_service: ambulance-dispatch
+    to_service: eoc-dispatch
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "emergency coordination"
+
+  - from_service: ambulance-ehr
+    to_service: ambulance-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "EHR reads patient records"
+
+  - from_service: ambulance-dispatch
+    to_service: ambulance-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "dispatch reads call records"
+
+  - from_service: ambulance-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "patient DB audit logs"
+
+  - from_service: ambulance-gps
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "fleet time sync"
+
+  - from_service: ambulance-backup
+    to_service: ambulance-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "patient DB backup"

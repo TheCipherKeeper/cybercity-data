@@ -1,0 +1,167 @@
+id: logistics
+name: "City Logistics & Delivery"
+kind: retail
+network_index: 46
+
+description: |
+  Городская логистическая и курьерская служба. Управляет посылками,
+  складами, транспортом и доставкой. Интегрируется с почтой, портом,
+  железной дорогой и интернет-магазинами.
+
+networks:
+  - id: logistics-dmz
+    kind: dmz
+    cidr: 10.46.1.0/24
+  - id: logistics-lan
+    kind: lan
+    cidr: 10.46.129.0/24
+  - id: logistics-mgmt
+    kind: mgmt
+    cidr: 10.46.253.0/24
+
+services:
+  - id: logistics-web
+    name: "Logistics public portal"
+    kind: web
+    exposure: public
+    host: logistics.city.gov
+    network_id: logistics-dmz
+    bind_ip: 10.46.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: logistics-tracking
+    name: "Logistics tracking API"
+    kind: api
+    exposure: intranet
+    host: tracking.logistics.corp
+    network_id: logistics-lan
+    bind_ip: 10.46.129.10
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: internal
+      product: parcel-tracker
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: logistics-warehouse
+    name: "Logistics warehouse WMS"
+    kind: erp
+    exposure: intranet
+    host: warehouse.logistics.corp
+    network_id: logistics-lan
+    bind_ip: 10.46.129.11
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: internal
+      product: wms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: logistics-db
+    name: "Logistics parcels DB"
+    kind: db
+    exposure: intranet
+    host: db.logistics.corp
+    network_id: logistics-lan
+    bind_ip: 10.46.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: logistics-gps
+    name: "Logistics fleet GPS"
+    kind: iot
+    exposure: intranet
+    host: gps.logistics.corp
+    network_id: logistics-lan
+    bind_ip: 10.46.129.13
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: internal
+      product: fleet-tracker
+      version: "2.0.0"
+    ports: [tcp/5000]
+    criticality: medium
+
+  - id: logistics-backup
+    name: "Logistics backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.logistics.corp
+    network_id: logistics-lan
+    bind_ip: 10.46.129.14
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: logistics-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: logistics-tracking
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "tracking API DNS"
+
+  - from_service: logistics-tracking
+    to_service: logistics-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "tracking reads parcel records"
+
+  - from_service: logistics-warehouse
+    to_service: logistics-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "WMS reads parcel records"
+
+  - from_service: logistics-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "parcels DB audit logs"
+
+  - from_service: logistics-gps
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "fleet time sync"
+
+  - from_service: logistics-backup
+    to_service: logistics-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "parcels DB backup"

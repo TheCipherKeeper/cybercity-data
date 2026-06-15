@@ -1,0 +1,157 @@
+id: disease-control
+name: "City Disease Control Center"
+kind: government
+network_index: 44
+
+description: |
+  Городской центр контроля заболеваний. Собирает эпидемиологическую сводку,
+  лабораторные результаты и оповещает медицинские учреждения и население.
+
+networks:
+  - id: disease-control-dmz
+    kind: dmz
+    cidr: 10.44.1.0/24
+  - id: disease-control-lan
+    kind: lan
+    cidr: 10.44.129.0/24
+  - id: disease-control-mgmt
+    kind: mgmt
+    cidr: 10.44.253.0/24
+
+services:
+  - id: disease-web
+    name: "Disease control public portal"
+    kind: web
+    exposure: public
+    host: disease.city.gov
+    network_id: disease-control-dmz
+    bind_ip: 10.44.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: disease-surveillance
+    name: "Disease surveillance system"
+    kind: api
+    exposure: intranet
+    host: surveillance.disease.gov
+    network_id: disease-control-lan
+    bind_ip: 10.44.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: internal
+      product: epi-tracker
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: disease-lab
+    name: "Disease lab reporting"
+    kind: api
+    exposure: intranet
+    host: lab.disease.gov
+    network_id: disease-control-lan
+    bind_ip: 10.44.129.11
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: internal
+      product: lab-reporter
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: disease-db
+    name: "Disease registry DB"
+    kind: db
+    exposure: intranet
+    host: db.disease.gov
+    network_id: disease-control-lan
+    bind_ip: 10.44.129.12
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: disease-backup
+    name: "Disease control backup"
+    kind: backup
+    exposure: intranet
+    host: backup.disease.gov
+    network_id: disease-control-lan
+    bind_ip: 10.44.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: disease-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: disease-surveillance
+    to_service: disease-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "surveillance reads registry"
+
+  - from_service: disease-surveillance
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "surveillance DNS"
+
+  - from_service: disease-lab
+    to_service: disease-db
+    kind: db-write
+    protocol: tcp/5432
+    encryption: tls
+    label: "lab writes test results"
+
+  - from_service: disease-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "registry DB audit logs"
+
+  - from_service: disease-backup
+    to_service: disease-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "registry DB backup"
+
+  - from_service: disease-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: disease-surveillance
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "surveillance MFA via City Hall"

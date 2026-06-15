@@ -1,0 +1,143 @@
+id: pharmacy
+name: "City Pharmacy Network"
+kind: healthcare
+network_index: 43
+
+description: |
+  Городская аптечная сеть. Управляет рецептами, складом лекарств,
+  кассовыми терминалами и интеграцией с клиниками и больницей.
+
+networks:
+  - id: pharmacy-dmz
+    kind: dmz
+    cidr: 10.43.1.0/24
+  - id: pharmacy-lan
+    kind: lan
+    cidr: 10.43.129.0/24
+  - id: pharmacy-mgmt
+    kind: mgmt
+    cidr: 10.43.253.0/24
+
+services:
+  - id: pharmacy-web
+    name: "Pharmacy public portal"
+    kind: web
+    exposure: public
+    host: pharmacy.city.gov
+    network_id: pharmacy-dmz
+    bind_ip: 10.43.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: pharmacy-pos
+    name: "Pharmacy POS"
+    kind: pos
+    exposure: intranet
+    host: pos.pharmacy.corp
+    network_id: pharmacy-lan
+    bind_ip: 10.43.129.10
+    auth: sso
+    data_classification: pci
+    software:
+      vendor: internal
+      product: pharmacy-pos
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: pharmacy-inventory
+    name: "Pharmacy inventory"
+    kind: erp
+    exposure: intranet
+    host: inventory.pharmacy.corp
+    network_id: pharmacy-lan
+    bind_ip: 10.43.129.11
+    auth: sso
+    data_classification: internal
+    software:
+      vendor: internal
+      product: drug-inventory
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: pharmacy-db
+    name: "Pharmacy records DB"
+    kind: db
+    exposure: intranet
+    host: db.pharmacy.corp
+    network_id: pharmacy-lan
+    bind_ip: 10.43.129.12
+    auth: certificate
+    data_classification: phi
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: pharmacy-backup
+    name: "Pharmacy backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.pharmacy.corp
+    network_id: pharmacy-lan
+    bind_ip: 10.43.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: pharmacy-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: pharmacy-pos
+    to_service: bank-api
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "payment processing"
+
+  - from_service: pharmacy-pos
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "POS DNS"
+
+  - from_service: pharmacy-inventory
+    to_service: pharmacy-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "inventory reads drug records"
+
+  - from_service: pharmacy-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "records DB audit logs"
+
+  - from_service: pharmacy-backup
+    to_service: pharmacy-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "records DB backup"

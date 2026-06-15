@@ -6,7 +6,8 @@ network_index: 33
 description: |
   Городская база национальной гвардии. Обеспечивает правопорядок,
   защиту критичной инфраструктуры и реагирование на чрезвычайные ситуации.
-  Сеть изолирована, связь с полицией и единым центром ЧС.
+  Сеть изолирована, но CAD гвардии связан с полицейским CAD и диспетчеризацией
+  единого центра ЧС для совместных операций.
 
 networks:
   - id: national-guard-dmz
@@ -142,3 +143,31 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "personnel DB backup"
+
+  - from_service: guard-cad
+    to_service: police-cad
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "joint public safety operations"
+
+  - from_service: guard-cad
+    to_service: eoc-dispatch
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "emergency coordination with EOC"
+
+  - from_service: guard-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: guard-cad
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "CAD MFA via City Hall"

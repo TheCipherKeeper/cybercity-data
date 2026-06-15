@@ -1,0 +1,150 @@
+id: tax-office
+name: "City Tax Office"
+kind: government
+network_index: 45
+
+description: |
+  Городская налоговая инспекция. Принимает налоговые декларации физических
+  и юридических лиц, ведёт реестры платежей и интегрируется с банком.
+
+networks:
+  - id: tax-office-dmz
+    kind: dmz
+    cidr: 10.45.1.0/24
+  - id: tax-office-lan
+    kind: lan
+    cidr: 10.45.129.0/24
+  - id: tax-office-mgmt
+    kind: mgmt
+    cidr: 10.45.253.0/24
+
+services:
+  - id: tax-web
+    name: "Tax office public portal"
+    kind: web
+    exposure: public
+    host: tax.city.gov
+    network_id: tax-office-dmz
+    bind_ip: 10.45.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.24.0"
+    ports: [tcp/443, tcp/80]
+    criticality: high
+
+  - id: tax-filing
+    name: "Tax filing API"
+    kind: api
+    exposure: intranet
+    host: filing.tax.gov
+    network_id: tax-office-lan
+    bind_ip: 10.45.129.10
+    auth: mfa
+    data_classification: confidential
+    software:
+      vendor: internal
+      product: tax-filing
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: critical
+
+  - id: tax-db
+    name: "Taxpayer registry DB"
+    kind: db
+    exposure: intranet
+    host: db.tax.gov
+    network_id: tax-office-lan
+    bind_ip: 10.45.129.11
+    auth: certificate
+    data_classification: confidential
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: critical
+
+  - id: tax-idp
+    name: "Tax office identity provider"
+    kind: identity
+    exposure: intranet
+    host: idp.tax.gov
+    network_id: tax-office-lan
+    bind_ip: 10.45.129.12
+    auth: mfa
+    data_classification: restricted
+    software:
+      vendor: Keycloak
+      product: keycloak
+      version: "24.0"
+    ports: [tcp/443]
+    criticality: high
+
+  - id: tax-backup
+    name: "Tax office backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.tax.gov
+    network_id: tax-office-lan
+    bind_ip: 10.45.129.13
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: tax-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public portal DNS"
+
+  - from_service: tax-filing
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "filing API DNS"
+
+  - from_service: tax-filing
+    to_service: tax-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "filing reads taxpayer records"
+
+  - from_service: tax-filing
+    to_service: tax-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "filing authentication"
+
+  - from_service: tax-web
+    to_service: tax-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO"
+
+  - from_service: tax-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "taxpayer DB audit logs"
+
+  - from_service: tax-backup
+    to_service: tax-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "taxpayer DB backup"

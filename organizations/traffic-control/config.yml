@@ -1,0 +1,170 @@
+id: traffic-control
+name: "City Traffic Control Center"
+kind: infra-utilities
+network_index: 41
+
+description: |
+  Городской центр управления дорожным движением. Управляет светофорами,
+  дорожными знаками VMS, камерами и датчиками интенсивности движения.
+  Критичная OT-инфраструктура с прямым физическим эффектом.
+
+networks:
+  - id: traffic-control-ot
+    kind: ot
+    cidr: 10.41.0.0/24
+  - id: traffic-control-dmz
+    kind: dmz
+    cidr: 10.41.1.0/24
+  - id: traffic-control-lan
+    kind: lan
+    cidr: 10.41.129.0/24
+  - id: traffic-control-mgmt
+    kind: mgmt
+    cidr: 10.41.253.0/24
+
+services:
+  - id: traffic-web
+    name: "Traffic public dashboard"
+    kind: web
+    exposure: public
+    host: traffic.city.gov
+    network_id: traffic-control-dmz
+    bind_ip: 10.41.1.10
+    auth: sso
+    data_classification: public
+    software:
+      vendor: nginx
+      product: nginx
+      version: "1.25.0"
+    ports: [tcp/443, tcp/80]
+    criticality: medium
+
+  - id: traffic-scada
+    name: "Traffic SCADA"
+    kind: ot
+    exposure: ot
+    host: scada.traffic.ot
+    network_id: traffic-control-ot
+    bind_ip: 10.41.0.10
+    auth: certificate
+    data_classification: restricted
+    software:
+      vendor: InductiveAutomation
+      product: ignition
+      version: "8.1"
+    ports: [tcp/443, tcp/502]
+    criticality: critical
+
+  - id: traffic-signals
+    name: "Traffic signal controller gateway"
+    kind: ot
+    exposure: ot
+    host: signals.traffic.ot
+    network_id: traffic-control-ot
+    bind_ip: 10.41.0.11
+    auth: local
+    data_classification: restricted
+    software:
+      vendor: McCain
+      product: m50
+      version: "unknown"
+    ports: [tcp/44818]
+    criticality: critical
+
+  - id: traffic-cctv
+    name: "Traffic CCTV"
+    kind: cctv
+    exposure: intranet
+    host: cctv.traffic.corp
+    network_id: traffic-control-lan
+    bind_ip: 10.41.129.10
+    auth: local
+    data_classification: internal
+    software:
+      vendor: Hikvision
+      product: ivms
+      version: "unknown"
+    ports: [tcp/443]
+    criticality: medium
+
+  - id: traffic-db
+    name: "Traffic telemetry DB"
+    kind: db
+    exposure: intranet
+    host: db.traffic.corp
+    network_id: traffic-control-lan
+    bind_ip: 10.41.129.11
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: PostgreSQL
+      product: postgresql
+      version: "15.4"
+    ports: [tcp/5432]
+    criticality: high
+
+  - id: traffic-backup
+    name: "Traffic backup server"
+    kind: backup
+    exposure: intranet
+    host: backup.traffic.corp
+    network_id: traffic-control-lan
+    bind_ip: 10.41.129.12
+    auth: certificate
+    data_classification: internal
+    software:
+      vendor: Veeam
+      product: backup-replication
+      version: "12.0"
+    ports: [tcp/9392]
+    criticality: high
+
+links:
+  - from_service: traffic-web
+    to_service: hall-dns
+    kind: dns-query
+    protocol: udp/53
+    encryption: none
+    label: "public dashboard DNS"
+
+  - from_service: traffic-scada
+    to_service: traffic-db
+    kind: db-write
+    protocol: tcp/5432
+    encryption: tls
+    label: "SCADA writes telemetry"
+
+  - from_service: traffic-signals
+    to_service: traffic-scada
+    kind: api-call
+    protocol: tcp/502
+    encryption: none
+    label: "signals controlled by SCADA"
+
+  - from_service: traffic-cctv
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "CCTV time sync"
+
+  - from_service: traffic-db
+    to_service: hall-log
+    kind: log-sink
+    protocol: tcp/9200
+    encryption: tls
+    label: "telemetry DB logs"
+
+  - from_service: traffic-backup
+    to_service: traffic-db
+    kind: backup-of
+    protocol: tcp/9392
+    encryption: tls
+    label: "telemetry DB backup"
+
+  - from_service: traffic-scada
+    to_service: hall-ntp
+    kind: ntp-query
+    protocol: udp/123
+    encryption: none
+    label: "SCADA time sync"

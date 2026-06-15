@@ -141,3 +141,17 @@ links:
     protocol: udp/123
     encryption: none
     label: "radio gateway time sync"
+
+  - from_service: police-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: police-cad
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "CAD MFA via City Hall"

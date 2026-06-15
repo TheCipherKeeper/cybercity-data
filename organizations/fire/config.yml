@@ -148,3 +148,24 @@ links:
     protocol: tcp/443
     encryption: tls
     label: "shared incident data"
+
+  - from_service: fire-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: fire-dispatch
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "dispatch MFA via City Hall"
+
+  - from_service: fire-gis
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "GIS SSO via City Hall"

@@ -141,3 +141,17 @@ links:
     protocol: tcp/9392
     encryption: tls
     label: "inmate DB backup"
+
+  - from_service: prison-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO via City Hall"
+
+  - from_service: prison-ims
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "inmate management SSO via City Hall"

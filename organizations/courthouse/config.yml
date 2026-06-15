@@ -121,6 +121,20 @@ links:
     encryption: tls
     label: "case records"
 
+  - from_service: court-web
+    to_service: court-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public portal SSO"
+
+  - from_service: court-cms
+    to_service: court-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "case management SSO"
+
   - from_service: court-db
     to_service: hall-log
     kind: log-sink

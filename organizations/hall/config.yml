@@ -168,3 +168,24 @@ links:
     protocol: tcp/9200
     encryption: tls
     label: "idp audit logs"
+
+  - from_service: hall-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "portal SSO"
+
+  - from_service: hall-mail
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "mail SSO"
+
+  - from_service: hall-fs
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "file share SSO"

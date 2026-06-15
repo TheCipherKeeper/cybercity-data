@@ -5,8 +5,8 @@ network_index: 40
 
 description: |
   Единый городской центр экстренного реагирования. Координирует полицию,
-  пожарных, скорую, нацгвардию, АЭС и транспорт при ЧС. Собирает
-  оперативную сводку и оповещает население.
+  пожарных, скорую, нацгвардию, АЭС, городской транспорт и дорожное движение
+  при чрезвычайных ситуациях. Собирает оперативную сводку и оповещает население.
 
 networks:
   - id: emergency-center-dmz
@@ -150,9 +150,58 @@ links:
     encryption: tls
     label: "fire coordination"
 
+  - from_service: eoc-dispatch
+    to_service: guard-cad
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "national guard coordination"
+
+  - from_service: eoc-dispatch
+    to_service: npp-scada
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "nuclear plant emergency status"
+
+  - from_service: eoc-dispatch
+    to_service: transport-db
+    kind: db-read
+    protocol: tcp/5432
+    encryption: tls
+    label: "public transport status for evacuations"
+
+  - from_service: eoc-dispatch
+    to_service: traffic-scada
+    kind: api-call
+    protocol: tcp/443
+    encryption: tls
+    label: "traffic signal control for emergency routes"
+
   - from_service: eoc-backup
     to_service: eoc-db
     kind: backup-of
     protocol: tcp/9392
     encryption: tls
     label: "incidents DB backup"
+
+  - from_service: eoc-web
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "public alerts SSO via City Hall"
+
+  - from_service: eoc-dispatch
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "dispatch MFA via City Hall"
+
+  - from_service: eoc-gis
+    to_service: hall-idp
+    kind: auth
+    protocol: tcp/443
+    encryption: tls
+    label: "GIS MFA via City Hall"
