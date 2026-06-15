@@ -1,7 +1,6 @@
 id: mobile
 name: "City Mobile Operator"
 kind: media-telecom
-network_index: 24
 
 description: |
   Городской мобильный оператор. Предоставляет голосовую связь,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: mobile-dmz
     kind: dmz
-    cidr: 10.24.1.0/24
   - id: mobile-lan
     kind: lan
-    cidr: 10.24.129.0/24
   - id: mobile-mgmt
     kind: mgmt
-    cidr: 10.24.253.0/24
 
 services:
   - id: mobile-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.mobile.net
     network_id: mobile-dmz
-    bind_ip: 10.24.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: billing.mobile.net
     network_id: mobile-lan
-    bind_ip: 10.24.129.10
     auth: mfa
     data_classification: pci
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: hlr.mobile.net
     network_id: mobile-lan
-    bind_ip: 10.24.129.11
     auth: certificate
     data_classification: pii
     software:
@@ -74,7 +67,6 @@ services:
     exposure: public
     host: dns.mobile.net
     network_id: mobile-dmz
-    bind_ip: 10.24.1.11
     auth: none
     data_classification: public
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.mobile.net
     network_id: mobile-lan
-    bind_ip: 10.24.129.12
     auth: certificate
     data_classification: internal
     software:

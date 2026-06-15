@@ -3,6 +3,7 @@
 Public surface: pydantic models, loader, checker, and builder.
 """
 
+from .allocator import Allocation, AllocationError, Allocator
 from .build import Builder, build_artifacts
 from .check import Issue, NetworkChecker, Report, check
 from .loader import NetworkLoader, load_network
@@ -31,6 +32,10 @@ from .models import (
 __version__ = "0.4.0"
 
 __all__ = [
+    # Allocation
+    "Allocation",
+    "AllocationError",
+    "Allocator",
     # Models
     "AuthMethod",
     "CityNetwork",

@@ -1,7 +1,6 @@
 id: pharmacy
 name: "City Pharmacy Network"
 kind: healthcare
-network_index: 43
 
 description: |
   Городская аптечная сеть. Управляет рецептами, складом лекарств,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: pharmacy-dmz
     kind: dmz
-    cidr: 10.43.1.0/24
   - id: pharmacy-lan
     kind: lan
-    cidr: 10.43.129.0/24
   - id: pharmacy-mgmt
     kind: mgmt
-    cidr: 10.43.253.0/24
 
 services:
   - id: pharmacy-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: pharmacy.city.gov
     network_id: pharmacy-dmz
-    bind_ip: 10.43.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: pos.pharmacy.corp
     network_id: pharmacy-lan
-    bind_ip: 10.43.129.10
     auth: sso
     data_classification: pci
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: inventory.pharmacy.corp
     network_id: pharmacy-lan
-    bind_ip: 10.43.129.11
     auth: sso
     data_classification: internal
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.pharmacy.corp
     network_id: pharmacy-lan
-    bind_ip: 10.43.129.12
     auth: certificate
     data_classification: phi
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.pharmacy.corp
     network_id: pharmacy-lan
-    bind_ip: 10.43.129.13
     auth: certificate
     data_classification: restricted
     software:

@@ -2,6 +2,7 @@
 
 > **TL;DR.** `cybercity-data` — canonical declarative data layer for the CyberCity digital twin:
 > organizations, networks, services, links. `check` validates; `build` writes artifacts.
+> Concrete IP addressing is generated, not declared.
 
 - [README](../README.md)
 - [Per-org layout conventions](ORGANIZATIONS.md)
@@ -11,7 +12,7 @@
 
 | Слой | Репозиторий | Роль |
 |---|---|---|
-| Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder |
+| Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder + allocator |
 | Симуляция | `cybercity-simulator` | запускает модель, эмулирует трафик и события |
 | UI | `cybercity-ui` | рисует граф из `build/topology.json` |
 | Агенты | `cybercity-agents` | LLM-генератор недостающих org'ов |
@@ -32,10 +33,11 @@ cybercity-data/
 │   └── LICENSE-DOCS             ← docs license
 ├── organizations/
 │   └── <org>/
-│       ├── config.yml           # per-organization data (v2.0 explicit)
+│       ├── config.yml           # per-organization data (v3.0 logical only)
 │       └── services/            # optional per-service asset directories
 ├── src/cybercity_data/
-│   ├── models.py                # Pydantic v2 schema
+│   ├── models.py                # Pydantic v2 schema (declarative layer)
+│   ├── allocator.py             # automatic network / IP allocation
 │   ├── loader.py                # per-org → CityNetwork
 │   ├── check.py                 # cross-field rules
 │   ├── build.py                 # artifact generation
@@ -46,9 +48,10 @@ cybercity-data/
 │   ├── test_loader.py
 │   ├── test_check.py
 │   ├── test_build.py
-│   └── test_cli.py
+│   ├── test_cli.py
+│   └── test_property.py
 └── build/                       ← generated artifacts (gitignored)
-    ├── network.json             # canonical full dump
+    ├── network.json             # canonical source dump (no generated IPs)
     ├── network.md               # human-readable projection
     ├── schema.json              # JSON Schema
     ├── topology.json            # graph for UI / simulator
@@ -56,20 +59,20 @@ cybercity-data/
     └── engine.zip               # bundled runtime package for cybercity-engine
 ```
 
-## Data model (v2.0)
+## Data model (v3.0)
 
 ### `Organization`
 
 ```
-id, name, kind, network_index      # 1-255, city-wide unique second octet
+id, name, kind
 description
-networks[]                       # REQUIRED in v2.0
+networks[]                       # REQUIRED in v3.0
 ```
 
 ### `Network`
 
 ```
-id, org_id, name, kind, cidr
+id, org_id, name, kind           # kind drives generated CIDR
 description
 ```
 
@@ -85,7 +88,7 @@ Links are always directed. If a relationship is bidirectional, declare two expli
 
 ```
 id, org_id, name, description?, kind, exposure, host
-network_id, bind_ip              # REQUIRED in v2.0
+network_id                       # logical placement; REQUIRED in v3.0
 software {vendor, product, version?, cve_id?}
 auth, data_classification, criticality
 ports, os_hint
@@ -106,12 +109,20 @@ version                            # schema version, code constant
 organizations[], services[], links[]
 ```
 
+### `Allocation` (generated)
+
+```
+org_index: dict[str, int]          # network_index per org
+net_cidr: dict[str, str]           # CIDR per network
+svc_ip: dict[str, str]             # bind_ip per service
+```
+
 ## CLI
 
 ```bash
-cybercity-data check [PATH] [--json] [--strict]   # validate only
-cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean]
-cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
+cybercity-data check [PATH] [--json] [--strict] [--seed SEED]   # validate only
+cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean] [--seed SEED]
+cybercity-data init ID --kind KIND [--path PATH] [--empty]
 ```
 
 - `check` — validate only.
@@ -119,6 +130,7 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
 - `init` — scaffold a new org directory. By default includes an example network and service; `--empty` keeps lists blank.
 - `--strict` — treat warnings as errors.
 - `--clean` — remove the output directory before rendering.
+- `--seed` — reproducible allocation; without it each build uses a fresh random allocation.
 
 ## Cross-field rules
 
@@ -127,10 +139,10 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
 | `ids` | error | unique id for org/network/service; unique `(from,to,kind)` link |
 | `refs` | error | service.org_id and link endpoints exist |
 | `network-belongs` | error | service.network_id exists and belongs to the same org |
-| `ip-in-network` | error | bind_ip lies inside service network CIDR |
-| `ip-unique` | error | bind_ip is unique within the same network |
-| `network-overlap` | error | networks do not overlap |
-| `ip-scheme` | error | every org CIDR lives under `10.<network_index>.x.x` |
+| `ip-in-network` | error | generated bind_ip lies inside generated network CIDR |
+| `ip-unique` | error | generated bind_ip is unique within the same network |
+| `network-overlap` | error | generated CIDRs do not overlap |
+| `ip-scheme` | error | generated CIDRs live under `10.<org_index>.x.x` |
 | `exposure-network` | error | exposure allowed on network kind |
 | `self-loop` | error | link does not point to itself |
 | `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |
@@ -157,16 +169,17 @@ cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
 | ADR-0013 | `engine.zip` is always produced, even without assets |
 | ADR-0014 | New artifacts: `attack-surface.json`, `inventory.md`, `changes.json` |
 | ADR-0015 | `mypy --strict` for static type checking |
+| **ADR-0016** | **Networks and IP addresses are generated by `allocator.py`; declarative model only describes topology** |
 
 ## Artifacts
 
 `build/` contains:
 
-- `network.json` — canonical `CityNetwork` dump.
+- `network.json` — canonical `CityNetwork` dump (declarative fields only, no generated IPs).
 - `network.md` — human-readable projection.
 - `schema.json` — JSON Schema emitted by Pydantic.
-- `topology.json` — graph for UI/simulator consumption.
-- `network.html` — self-contained interactive viewer.
+- `topology.json` — graph for UI/simulator consumption (includes generated `bind_ip` / `network_index`).
+- `network.html` — self-contained interactive graph viewer.
 - `attack-surface.json` — publicly exposed services and metadata.
 - `inventory.md` — discovered service asset directories.
 - `changes.json` — git-based diff against the previous build.

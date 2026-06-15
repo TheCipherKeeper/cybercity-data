@@ -1,7 +1,6 @@
 id: supermarket
 name: "City Supermarket Chain"
 kind: retail
-network_index: 26
 
 description: |
   Сеть супермаркетов города. Онлайн-заказы, магазинные POS,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: supermarket-dmz
     kind: dmz
-    cidr: 10.26.1.0/24
   - id: supermarket-lan
     kind: lan
-    cidr: 10.26.129.0/24
   - id: supermarket-mgmt
     kind: mgmt
-    cidr: 10.26.253.0/24
 
 services:
   - id: market-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: portal.supermarket.retail
     network_id: supermarket-dmz
-    bind_ip: 10.26.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: pos.supermarket.retail
     network_id: supermarket-lan
-    bind_ip: 10.26.129.10
     auth: sso
     data_classification: pci
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: erp.supermarket.retail
     network_id: supermarket-lan
-    bind_ip: 10.26.129.11
     auth: sso
     data_classification: internal
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.supermarket.retail
     network_id: supermarket-lan
-    bind_ip: 10.26.129.12
     auth: certificate
     data_classification: confidential
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.supermarket.retail
     network_id: supermarket-lan
-    bind_ip: 10.26.129.13
     auth: certificate
     data_classification: internal
     software:
@@ -105,7 +96,6 @@ services:
     exposure: intranet
     host: idp.supermarket.retail
     network_id: supermarket-lan
-    bind_ip: 10.26.129.14
     auth: mfa
     data_classification: restricted
     software:

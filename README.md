@@ -11,9 +11,10 @@ This repository models the IT/OT infrastructure of an abstract city as a
 directed graph: services are nodes, links are edges. Other tools consume this
 graph to simulate traffic, run security scenarios, and visualize the city.
 
-In v2.0 everything is explicit: each organization declares its own networks,
-IP addresses, service placement, and optional per-service asset directories.
-The validator catches missing or inconsistent declarations.
+In v3.0 the declarative layer only describes topology — organizations,
+network roles, service placement, and links. Concrete IP addressing is generated
+automatically by the allocator, keeping the model focused on structure rather
+than address bookkeeping.
 
 Links are always directed; if a relationship is bidirectional, declare two
 explicit links.
@@ -36,13 +37,14 @@ uv run mypy --strict src/cybercity_data
 ## CLI
 
 ```
-cybercity-data check [PATH] [--json] [--strict]   # validate only
-cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean]
-cybercity-data init ID --kind KIND --network-index INDEX [--path PATH] [--empty]
+cybercity-data check [PATH] [--json] [--strict] [--seed SEED]   # validate only
+cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean] [--seed SEED]
+cybercity-data init ID --kind KIND [--path PATH] [--empty]
 ```
 
 - `--strict` treats warnings as errors.
 - `--clean` removes the output directory before rendering.
+- `--seed` makes IP allocation reproducible; without it each build uses a random allocation.
 - `init` scaffolds a new organization under `organizations/<ID>/`. By default it includes an example network and service; use `--empty` for a minimal template.
 
 ## Artifacts

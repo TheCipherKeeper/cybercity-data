@@ -1,7 +1,6 @@
 id: prison
 name: "City Correctional Facility"
 kind: government
-network_index: 19
 
 description: |
   Городское исправительное учреждение. Управляет данными заключённых,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: prison-dmz
     kind: dmz
-    cidr: 10.19.1.0/24
   - id: prison-lan
     kind: lan
-    cidr: 10.19.129.0/24
   - id: prison-mgmt
     kind: mgmt
-    cidr: 10.19.253.0/24
 
 services:
   - id: prison-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: portal.prison.gov
     network_id: prison-dmz
-    bind_ip: 10.19.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: ims.prison.gov
     network_id: prison-lan
-    bind_ip: 10.19.129.10
     auth: sso
     data_classification: restricted
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: cctv.prison.gov
     network_id: prison-lan
-    bind_ip: 10.19.129.11
     auth: local
     data_classification: restricted
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.prison.gov
     network_id: prison-lan
-    bind_ip: 10.19.129.12
     auth: certificate
     data_classification: restricted
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.prison.gov
     network_id: prison-lan
-    bind_ip: 10.19.129.13
     auth: certificate
     data_classification: internal
     software:

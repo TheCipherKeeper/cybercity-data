@@ -13,18 +13,17 @@ def test_tiny_fixture_parses(tiny_network: CityNetwork) -> None:
     assert sum(len(o.networks) for o in tiny_network.organizations) == 3
     assert len(tiny_network.services) == 4
     assert len(tiny_network.links) == 1
-    assert tiny_network.version == "2.0.0"
+    assert tiny_network.version == "3.0.0"
 
 
 def test_bad_org_kind_rejected() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
             {
                 "id": "bad",
                 "name": "Bad",
                 "kind": "non-existent",
-                "network_index": 1,
             }
         ],
     }
@@ -34,9 +33,9 @@ def test_bad_org_kind_rejected() -> None:
 
 def test_id_pattern_kebab_case() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "Has_Caps", "name": "x", "kind": "government", "network_index": 1}
+            {"id": "Has_Caps", "name": "x", "kind": "government"}
         ],
     }
     with pytest.raises(ValidationError):
@@ -45,15 +44,26 @@ def test_id_pattern_kebab_case() -> None:
 
 def test_extra_field_rejected() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
             {
                 "id": "x",
                 "name": "X",
                 "kind": "government",
-                "network_index": 1,
                 "smuggled": True,
             }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        CityNetwork.model_validate(raw)
+
+
+def test_removed_network_index_rejected() -> None:
+    """network_index is no longer part of the declarative model."""
+    raw = {
+        "version": "3.0.0",
+        "organizations": [
+            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
         ],
     }
     with pytest.raises(ValidationError):
@@ -70,9 +80,9 @@ def test_version_pattern() -> None:
 
 def test_service_requires_host_fqdn() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {
@@ -91,9 +101,9 @@ def test_service_requires_host_fqdn() -> None:
 
 def test_cve_id_pattern() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {
@@ -117,9 +127,9 @@ def test_cve_id_pattern() -> None:
 
 def test_service_ports_pattern() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {
@@ -139,9 +149,9 @@ def test_service_ports_pattern() -> None:
 
 def test_service_ports_accepts_valid() -> None:
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {
@@ -161,15 +171,15 @@ def test_service_ports_accepts_valid() -> None:
 
 def test_default_version_is_schema_version() -> None:
     network = CityNetwork(organizations=[])
-    assert network.version == "2.0.0"
+    assert network.version == "3.0.0"
 
 
 def test_known_weakness_rejected() -> None:
     """known_weakness was removed in the city-simulation refactor."""
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {
@@ -190,9 +200,9 @@ def test_known_weakness_rejected() -> None:
 def test_attack_chain_rejected() -> None:
     """attack_chain was removed from links."""
     raw = {
-        "version": "2.0.0",
+        "version": "3.0.0",
         "organizations": [
-            {"id": "x", "name": "X", "kind": "government", "network_index": 1}
+            {"id": "x", "name": "X", "kind": "government"}
         ],
         "services": [
             {"id": "a", "org_id": "x", "name": "A", "kind": "web",

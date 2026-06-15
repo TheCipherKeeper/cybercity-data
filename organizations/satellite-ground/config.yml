@@ -1,7 +1,6 @@
 id: satellite-ground
 name: "City Satellite Ground Station"
 kind: media-telecom
-network_index: 34
 
 description: |
   Наземная станция спутниковой связи города. Поставляет новостной компании
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: satellite-ground-dmz
     kind: dmz
-    cidr: 10.34.1.0/24
   - id: satellite-ground-lan
     kind: lan
-    cidr: 10.34.129.0/24
   - id: satellite-ground-mgmt
     kind: mgmt
-    cidr: 10.34.253.0/24
 
 services:
   - id: sat-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.satellite-ground.net
     network_id: satellite-ground-dmz
-    bind_ip: 10.34.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: control.satellite-ground.net
     network_id: satellite-ground-lan
-    bind_ip: 10.34.129.10
     auth: mfa
     data_classification: restricted
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: telemetry.satellite-ground.net
     network_id: satellite-ground-lan
-    bind_ip: 10.34.129.11
     auth: certificate
     data_classification: internal
     ports: [tcp/443]
@@ -70,7 +63,6 @@ services:
     exposure: intranet
     host: db.satellite-ground.net
     network_id: satellite-ground-lan
-    bind_ip: 10.34.129.12
     auth: certificate
     data_classification: internal
     software:
@@ -86,7 +78,6 @@ services:
     exposure: intranet
     host: backup.satellite-ground.net
     network_id: satellite-ground-lan
-    bind_ip: 10.34.129.13
     auth: certificate
     data_classification: internal
     software:

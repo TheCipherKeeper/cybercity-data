@@ -1,7 +1,6 @@
 id: logistics
 name: "City Logistics & Delivery"
 kind: retail
-network_index: 46
 
 description: |
   Городская логистическая и курьерская служба. Управляет посылками,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: logistics-dmz
     kind: dmz
-    cidr: 10.46.1.0/24
   - id: logistics-lan
     kind: lan
-    cidr: 10.46.129.0/24
   - id: logistics-mgmt
     kind: mgmt
-    cidr: 10.46.253.0/24
 
 services:
   - id: logistics-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.logistics.retail
     network_id: logistics-dmz
-    bind_ip: 10.46.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: tracking.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.10
     auth: sso
     data_classification: internal
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: warehouse.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.11
     auth: sso
     data_classification: internal
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.12
     auth: certificate
     data_classification: internal
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: gps.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.13
     auth: certificate
     data_classification: internal
     software:
@@ -106,7 +97,6 @@ services:
     exposure: intranet
     host: backup.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.14
     auth: certificate
     data_classification: internal
     software:
@@ -122,7 +112,6 @@ services:
     exposure: intranet
     host: idp.logistics.retail
     network_id: logistics-lan
-    bind_ip: 10.46.129.15
     auth: mfa
     data_classification: restricted
     software:

@@ -39,27 +39,23 @@ id: hospital            # должен совпадать с именем пап
 name: "City General Hospital"
 kind: healthcare             # government | healthcare | infra-utilities | finance |
                              # retail | media-telecom | education | msp
-network_index: 10           # 1-255, городской уникальный второй октет
 
 # Краткое описание (необязательно, но рекомендуется).
 description: |
   Опиши в 2-4 строках роль, типичные сервисы и связи с другими org.
 
-# Сети организации (ОБЯЗАТЕЛЬНЫ в v2.0).
-# Loader не выделяет IP-диапазоны автоматически.
+# Сети организации (ОБЯЗАТЕЛЬНЫ в v3.0).
+# Их CIDR выделяет билдер автоматически из роли сети (kind).
 networks:
   - id: hospital-dmz
     kind: dmz
-    cidr: 10.10.10.0/24
   - id: hospital-lan
     kind: lan
-    cidr: 10.10.11.0/24
   - id: hospital-mgmt
     kind: mgmt
-    cidr: 10.10.253.0/24
 
 # Сервисы организации. `org_id` не пишется — loader подставляет из папки.
-# `network_id` и `bind_ip` обязательны в v2.0.
+# `network_id` — логическое размещение; bind_ip генерируется автоматически.
 services:
   - id: hosp-web
     name: "Hospital portal"
@@ -71,7 +67,6 @@ services:
     exposure: public           # public | intranet | ot | mgmt
     host: portal.hospital.corp
     network_id: hospital-dmz
-    bind_ip: 10.10.10.10
     auth: sso
     data_classification: public
     criticality: high          # critical | high | medium | low
@@ -90,7 +85,6 @@ services:
     exposure: intranet
     host: mock-printer-01.hospital.corp
     network_id: hospital-lan
-    bind_ip: 10.10.11.15
     criticality: low
     ports: [tcp/9100, tcp/80]
     decoy:
@@ -112,30 +106,26 @@ links:
 
 ## Схема адресации
 
-Каждая организация получает уникальный `network_index` (1-255) — второй октет
-городского адресного пространства `10.0.0.0/8`. Все сети org должны лежать
-внутри `10.<network_index>.0.0/16`:
+Каждая организация получает уникальный `network_index` — второй октет
+городского адресного пространства `10.0.0.0/8`.  Билдер выделяет его
+автоматически при каждой сборке (случайно, если не передан `--seed`).
 
-```
-10.<network_index>.<subnet>.<host>
-```
+Подсети внутри организации строятся по правилу:
 
-Рекомендуемые договорённости внутри org:
+- `dmz` / `internet` — третий октет `0-127` (до 128 сетей `/24`).
+- `lan` / `ot` — третий октет `128-252` (до 125 сетей `/24`).
+- `mgmt` — третий октет `253`, только одна такая сеть.
 
-- `dmz` — третий октет `0-127` (например `10.10.10.0/24`).
-- `lan` / `ot` — третий октет `128-252` (например `10.10.129.0/24`).
-- `mgmt` — третий октет `253` (например `10.10.253.0/24`).
-
-Валидатор проверяет кодом `ip-scheme`, что каждая `cidr`
-начинается с `10.<network_index>.`.
+IP сервисов (`bind_ip`) выдаются внутри соответствующей сети, начиная с `.10`.
 
 ## Соглашения
 
 - **1 папка = 1 организация.** Имя папки совпадает с `id` в `config.yml`.
 - **`config.yml` — единственный файл данных** в папке.
 - **`services[].org_id` не пишется.** Loader подставляет автоматически.
-- **`networks` обязательны.** Loader не создаёт сети и не назначает IP.
-- **`services[].network_id` и `services[].bind_ip` обязательны.** Валидатор поймает ошибки.
+- **`networks` обязательны.** Loader не создаёт сети; их роли и порядок влияют на автоматическое распределение.
+- **`services[].network_id` обязателен.** Он задаёт логическое размещение; конкретный IP генерируется.
+- **Не указывай `network_index`, `cidr`, `bind_ip`.** Эти поля удалены из декларативной модели.
 - **Опциональные ассеты сервисов** — в `services/<svc-id>/`. Имя папки должно
   совпадать с `id` сервиса из `config.yml`; иначе loader выдаст warning.
 - **`decoy` — имитационный сервис.** Используется для плотности симуляции, не связан с security-слоем.
@@ -145,8 +135,8 @@ links:
 - **Сценарии и уязвимости** — в соседних репозиториях, потребляют эту модель.
 - **Нет свободных narrative-полей у организации.** `description` — единственный
   человекочитаемый блок. Если нужны заметки, используй YAML-комментарии (`#`).
-- **CLI помогает начать:** `cybercity-data init my-org --kind government --network-index 42`
+- **CLI помогает начать:** `cybercity-data init my-org --kind government`
   создаёт шаблон с примером сети и сервиса. Флаг `--empty` даёт пустой шаблон.
 - **Сборка:** `cybercity-data build . --clean` пересоздаёт `build/` с актуальными
   артефактами (`network.json`, `attack-surface.json`, `inventory.md`, `changes.json`,
-  `engine.zip` и др.).
+  `engine.zip` и др.).  Для воспроизводимой адресации добавь `--seed <int>`.

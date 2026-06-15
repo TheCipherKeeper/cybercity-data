@@ -1,7 +1,6 @@
 id: crypto-exchange
 name: "City Crypto Exchange"
 kind: finance
-network_index: 29
 
 description: |
   Городская криптовалютная биржа. Хранит горячие и холодные кошельки,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: crypto-exchange-dmz
     kind: dmz
-    cidr: 10.29.1.0/24
   - id: crypto-exchange-lan
     kind: lan
-    cidr: 10.29.129.0/24
   - id: crypto-exchange-mgmt
     kind: mgmt
-    cidr: 10.29.253.0/24
 
 services:
   - id: crypto-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.crypto-exchange.corp
     network_id: crypto-exchange-dmz
-    bind_ip: 10.29.1.10
     auth: mfa
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: public
     host: api.crypto-exchange.corp
     network_id: crypto-exchange-dmz
-    bind_ip: 10.29.1.11
     auth: mfa
     data_classification: confidential
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: wallet.crypto-exchange.corp
     network_id: crypto-exchange-lan
-    bind_ip: 10.29.129.10
     auth: certificate
     data_classification: restricted
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.crypto-exchange.corp
     network_id: crypto-exchange-lan
-    bind_ip: 10.29.129.11
     auth: certificate
     data_classification: pii
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.crypto-exchange.corp
     network_id: crypto-exchange-lan
-    bind_ip: 10.29.129.12
     auth: certificate
     data_classification: internal
     software:

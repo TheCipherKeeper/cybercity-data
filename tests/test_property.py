@@ -6,6 +6,7 @@ import hypothesis.strategies as st
 from hypothesis import given, settings
 
 from cybercity_data import Builder, CityNetwork, check
+from cybercity_data.allocator import Allocator
 from cybercity_data.models import Link, Network, Organization, Service
 
 _SVC_KINDS = [
@@ -44,22 +45,17 @@ _LINK_KINDS = [
 @st.composite
 def _city_network(draw):
     org_id = draw(st.sampled_from(["x-a", "x-b", "x-c"]))
-    network_index = draw(st.integers(min_value=1, max_value=255))
-    third_octet = draw(st.integers(min_value=0, max_value=254))
-    cidr = f"10.{network_index}.{third_octet}.0/24"
     net_id = f"{org_id}-net"
     org = Organization(
         id=org_id,
         name=org_id,
         kind="government",
-        network_index=network_index,
-        networks=[Network(id=net_id, org_id=org_id, kind="lan", cidr=cidr)],
+        networks=[Network(id=net_id, org_id=org_id, kind="lan")],
     )
 
     n_services = draw(st.integers(min_value=1, max_value=8))
     services: list[Service] = []
     for i in range(n_services):
-        host_octet = draw(st.integers(min_value=1, max_value=254))
         svc = Service(
             id=f"svc-{i}",
             org_id=org_id,
@@ -68,7 +64,6 @@ def _city_network(draw):
             exposure=draw(st.sampled_from(_EXPOSURES)),
             host=f"svc-{i}.{org_id}.corp",
             network_id=net_id,
-            bind_ip=f"10.{network_index}.{third_octet}.{host_octet}",
             auth=draw(st.sampled_from(_AUTHS)),
             data_classification=draw(
                 st.sampled_from(["public", "internal", "confidential", "restricted"])
@@ -96,8 +91,9 @@ def _city_network(draw):
 @settings(max_examples=50, deadline=None)
 @given(network=_city_network())
 def test_check_and_build_never_crash(network: CityNetwork) -> None:
-    report = check(network)
+    allocation = Allocator(network, seed=0).allocate()
+    report = check(network, allocation=allocation)
     assert isinstance(report.issues, list)
-    artifacts = Builder(network).build()
+    artifacts = Builder(network, allocation=allocation).build()
     for name in ("network.json", "topology.json", "attack-surface.json", "changes.json"):
         assert name in artifacts

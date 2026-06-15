@@ -21,6 +21,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from .allocator import Allocation, Allocator
 from .loader import ServiceAssets
 from .models import CityNetwork, OrgKind
 
@@ -47,9 +48,11 @@ class Builder:
     def __init__(
         self,
         network: CityNetwork,
+        allocation: Allocation | None = None,
         service_assets: list[ServiceAssets] | None = None,
     ) -> None:
         self.network = network
+        self.allocation = allocation or Allocator(network).allocate()
         self.service_assets = service_assets or []
 
     def build(self) -> dict[str, str]:
@@ -97,7 +100,6 @@ class Builder:
     # ─────────────────────────────────────────────────────────────────
     def _topology_dict(self) -> dict[str, Any]:
         org_name = {o.id: o.name for o in self.network.organizations}
-        org_index = {o.id: o.network_index for o in self.network.organizations}
 
         nodes: list[dict[str, Any]] = []
         for s in sorted(self.network.services, key=lambda x: x.id):
@@ -108,9 +110,9 @@ class Builder:
                     "description": s.description,
                     "org_id": s.org_id,
                     "org_name": org_name.get(s.org_id, ""),
-                    "network_index": org_index.get(s.org_id, 0),
+                    "network_index": self.allocation.network_index(s.org_id),
                     "network_id": s.network_id,
-                    "bind_ip": s.bind_ip,
+                    "bind_ip": self.allocation.bind_ip(s.id),
                     "exposure": s.exposure,
                     "auth": s.auth,
                     "data_classification": s.data_classification,
@@ -188,7 +190,7 @@ class Builder:
                 "org_id": s.org_id,
                 "name": s.name,
                 "host": s.host,
-                "ip": s.bind_ip,
+                "ip": self.allocation.bind_ip(s.id),
                 "network_id": s.network_id,
                 "kind": s.kind,
                 "exposure": s.exposure,
@@ -247,9 +249,13 @@ class Builder:
                     o.id: {
                         "name": o.name,
                         "kind": o.kind,
-                        "network_index": o.network_index,
+                        "network_index": self.allocation.network_index(o.id),
                         "networks": [
-                            {"id": n.id, "kind": n.kind, "cidr": n.cidr}
+                            {
+                                "id": n.id,
+                                "kind": n.kind,
+                                "cidr": self.allocation.cidr(n.id),
+                            }
                             for n in o.networks
                         ],
                     }
@@ -327,7 +333,7 @@ class Builder:
                 "org_id": s.org_id,
                 "org_name": org_name.get(s.org_id, ""),
                 "network_id": s.network_id,
-                "bind_ip": s.bind_ip,
+                "bind_ip": self.allocation.bind_ip(s.id),
                 "host": s.host,
                 "kind": s.kind,
                 "exposure": s.exposure,
@@ -589,7 +595,8 @@ class Builder:
                     1 for s in self.network.services if s.network_id == net.id
                 )
                 parts.append(
-                    f"| `{org.id}` | `{net.id}` | {net.kind} | {net.cidr} | {svc_count} |"
+                    f"| `{org.id}` | `{net.id}` | {net.kind} | "
+                    f"{self.allocation.cidr(net.id)} | {svc_count} |"
                 )
         parts.append("")
 
@@ -597,13 +604,13 @@ class Builder:
         parts.append("## Организации")
         parts.append("")
         parts.append(
-            "| id | name | kind | network_index | networks | services |"
+            "| id | name | kind | networks | services |"
         )
         parts.append("|---|---|---|---|---|---|")
         svc_count_by_org = Counter(s.org_id for s in self.network.services)
         for o in sorted(self.network.organizations, key=lambda x: x.id):
             parts.append(
-                f"| `{o.id}` | {o.name} | {o.kind} | {o.network_index} | "
+                f"| `{o.id}` | {o.name} | {o.kind} | "
                 f"{len(o.networks)} | {svc_count_by_org.get(o.id, 0)} |"
             )
         parts.append("")
@@ -651,7 +658,7 @@ class Builder:
                     sw += f" {s.software.version}"
             ports = ", ".join(s.ports)
             mock = s.decoy.kind if s.decoy else ""
-            bind_ip = s.bind_ip or ""
+            bind_ip = self.allocation.bind_ip(s.id)
             os_hint = s.os_hint or ""
             parts.append(
                 f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {bind_ip} | "
@@ -670,7 +677,8 @@ class Builder:
             for s in sorted(mocks, key=lambda x: x.id):
                 assert s.decoy is not None
                 parts.append(
-                    f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {s.bind_ip or ''} | "
+                    f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | "
+                    f"{self.allocation.bind_ip(s.id)} | "
                     f"{s.decoy.kind} | {s.decoy.fingerprint} | {s.decoy.os_hint or ''} |"
                 )
         else:
@@ -683,6 +691,10 @@ class Builder:
         return "\n".join(parts)
 
 
-def build_artifacts(network: CityNetwork, target: Path | str) -> list[Path]:
+def build_artifacts(
+    network: CityNetwork,
+    target: Path | str,
+    allocation: Allocation | None = None,
+) -> list[Path]:
     """One-shot build: write artifacts under `target/`."""
-    return Builder(network).render(target)
+    return Builder(network, allocation=allocation).render(target)

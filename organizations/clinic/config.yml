@@ -1,7 +1,6 @@
 id: clinic
 name: "City Outpatient Clinic"
 kind: healthcare
-network_index: 8
 
 description: |
   Городская поликлиника. Ведёт электронные медицинские карты, запись к врачам,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: clinic-dmz
     kind: dmz
-    cidr: 10.8.1.0/24
   - id: clinic-lan
     kind: lan
-    cidr: 10.8.129.0/24
   - id: clinic-mgmt
     kind: mgmt
-    cidr: 10.8.253.0/24
 
 services:
   - id: clinic-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: portal.clinic.med
     network_id: clinic-dmz
-    bind_ip: 10.8.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: emr.clinic.med
     network_id: clinic-lan
-    bind_ip: 10.8.129.10
     auth: mfa
     data_classification: phi
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: db.clinic.med
     network_id: clinic-lan
-    bind_ip: 10.8.129.11
     auth: certificate
     data_classification: phi
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: lab.clinic.med
     network_id: clinic-lan
-    bind_ip: 10.8.129.12
     auth: certificate
     data_classification: phi
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.clinic.med
     network_id: clinic-lan
-    bind_ip: 10.8.129.13
     auth: certificate
     data_classification: restricted
     software:

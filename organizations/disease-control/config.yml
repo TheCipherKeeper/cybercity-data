@@ -1,7 +1,6 @@
 id: disease-control
 name: "City Disease Control Center"
 kind: government
-network_index: 44
 
 description: |
   Городской центр контроля заболеваний. Собирает эпидемиологическую сводку,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: disease-control-dmz
     kind: dmz
-    cidr: 10.44.1.0/24
   - id: disease-control-lan
     kind: lan
-    cidr: 10.44.129.0/24
   - id: disease-control-mgmt
     kind: mgmt
-    cidr: 10.44.253.0/24
 
 services:
   - id: disease-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: disease.city.gov
     network_id: disease-control-dmz
-    bind_ip: 10.44.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: surveillance.disease.gov
     network_id: disease-control-lan
-    bind_ip: 10.44.129.10
     auth: mfa
     data_classification: confidential
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: lab.disease.gov
     network_id: disease-control-lan
-    bind_ip: 10.44.129.11
     auth: certificate
     data_classification: phi
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.disease.gov
     network_id: disease-control-lan
-    bind_ip: 10.44.129.12
     auth: certificate
     data_classification: confidential
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.disease.gov
     network_id: disease-control-lan
-    bind_ip: 10.44.129.13
     auth: certificate
     data_classification: restricted
     software:

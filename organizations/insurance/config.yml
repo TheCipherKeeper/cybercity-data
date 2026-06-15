@@ -1,7 +1,6 @@
 id: insurance
 name: "City Insurance Group"
 kind: finance
-network_index: 16
 
 description: |
   Городская страховая компания. Продаёт полисы, обрабатывает убытки,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: insurance-dmz
     kind: dmz
-    cidr: 10.16.1.0/24
   - id: insurance-lan
     kind: lan
-    cidr: 10.16.129.0/24
   - id: insurance-mgmt
     kind: mgmt
-    cidr: 10.16.253.0/24
 
 services:
   - id: ins-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.insurance.corp
     network_id: insurance-dmz
-    bind_ip: 10.16.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: api.insurance.corp
     network_id: insurance-lan
-    bind_ip: 10.16.129.10
     auth: mfa
     data_classification: confidential
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: db.insurance.corp
     network_id: insurance-lan
-    bind_ip: 10.16.129.11
     auth: certificate
     data_classification: pii
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: idp.insurance.corp
     network_id: insurance-lan
-    bind_ip: 10.16.129.12
     auth: mfa
     data_classification: restricted
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.insurance.corp
     network_id: insurance-lan
-    bind_ip: 10.16.129.13
     auth: certificate
     data_classification: internal
     software:

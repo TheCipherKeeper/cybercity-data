@@ -1,7 +1,6 @@
 id: hospital
 name: "City General Hospital"
 kind: healthcare
-network_index: 3
 
 description: |
   Крупная городская больница. Ведёт электронные медицинские карты,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: hospital-dmz
     kind: dmz
-    cidr: 10.3.1.0/24
   - id: hospital-lan
     kind: lan
-    cidr: 10.3.129.0/24
   - id: hospital-mgmt
     kind: mgmt
-    cidr: 10.3.253.0/24
 
 services:
   - id: hosp-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.hospital.med
     network_id: hospital-dmz
-    bind_ip: 10.3.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: emr.hospital.med
     network_id: hospital-lan
-    bind_ip: 10.3.129.10
     auth: mfa
     data_classification: phi
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: pacs.hospital.med
     network_id: hospital-lan
-    bind_ip: 10.3.129.11
     auth: sso
     data_classification: phi
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.hospital.med
     network_id: hospital-lan
-    bind_ip: 10.3.129.12
     auth: certificate
     data_classification: phi
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.hospital.med
     network_id: hospital-lan
-    bind_ip: 10.3.129.13
     auth: certificate
     data_classification: internal
     software:

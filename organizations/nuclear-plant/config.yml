@@ -1,7 +1,6 @@
 id: nuclear-plant
 name: "City Nuclear Power Plant"
 kind: infra-utilities
-network_index: 30
 
 description: |
   Городская атомная электростанция. Управляет реактором, турбинами,
@@ -12,16 +11,12 @@ description: |
 networks:
   - id: nuclear-plant-dmz
     kind: dmz
-    cidr: 10.30.1.0/24
   - id: nuclear-plant-lan
     kind: lan
-    cidr: 10.30.129.0/24
   - id: nuclear-plant-ot
     kind: ot
-    cidr: 10.30.128.0/24
   - id: nuclear-plant-mgmt
     kind: mgmt
-    cidr: 10.30.253.0/24
 
 services:
   - id: npp-web
@@ -30,7 +25,6 @@ services:
     exposure: public
     host: portal.nuclear-plant.corp
     network_id: nuclear-plant-dmz
-    bind_ip: 10.30.1.10
     auth: sso
     data_classification: public
     software:
@@ -46,7 +40,6 @@ services:
     exposure: ot
     host: scada.nuclear-plant.corp
     network_id: nuclear-plant-ot
-    bind_ip: 10.30.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -62,7 +55,6 @@ services:
     exposure: ot
     host: hmi.nuclear-plant.corp
     network_id: nuclear-plant-ot
-    bind_ip: 10.30.128.11
     auth: local
     data_classification: restricted
     software:
@@ -78,7 +70,6 @@ services:
     exposure: intranet
     host: radiation.nuclear-plant.corp
     network_id: nuclear-plant-lan
-    bind_ip: 10.30.129.10
     auth: certificate
     data_classification: restricted
     software:
@@ -94,7 +85,6 @@ services:
     exposure: intranet
     host: db.nuclear-plant.corp
     network_id: nuclear-plant-lan
-    bind_ip: 10.30.129.11
     auth: certificate
     data_classification: restricted
     software:
@@ -110,7 +100,6 @@ services:
     exposure: intranet
     host: backup.nuclear-plant.corp
     network_id: nuclear-plant-lan
-    bind_ip: 10.30.129.12
     auth: certificate
     data_classification: internal
     software:
@@ -126,7 +115,6 @@ services:
     exposure: intranet
     host: emergency.nuclear-plant.corp
     network_id: nuclear-plant-lan
-    bind_ip: 10.30.129.13
     auth: mfa
     data_classification: restricted
     software:

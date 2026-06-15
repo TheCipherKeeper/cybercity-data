@@ -1,7 +1,6 @@
 id: fire
 name: "City Fire Department"
 kind: government
-network_index: 14
 
 description: |
   Городская пожарная служба. Диспетчеризация вызовов, карты инцидентов,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: fire-dmz
     kind: dmz
-    cidr: 10.14.1.0/24
   - id: fire-lan
     kind: lan
-    cidr: 10.14.129.0/24
   - id: fire-mgmt
     kind: mgmt
-    cidr: 10.14.253.0/24
 
 services:
   - id: fire-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: fire.city.gov
     network_id: fire-dmz
-    bind_ip: 10.14.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: dispatch.fire.city.gov
     network_id: fire-lan
-    bind_ip: 10.14.129.10
     auth: mfa
     data_classification: restricted
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: gis.fire.city.gov
     network_id: fire-lan
-    bind_ip: 10.14.129.11
     auth: sso
     data_classification: internal
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.fire.city.gov
     network_id: fire-lan
-    bind_ip: 10.14.129.12
     auth: certificate
     data_classification: restricted
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: cctv.fire.city.gov
     network_id: fire-lan
-    bind_ip: 10.14.129.13
     auth: local
     data_classification: internal
     software:

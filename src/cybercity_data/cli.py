@@ -1,9 +1,9 @@
 """CLI entry point.
 
 Commands:
-    cybercity-data check [PATH] [--json] [--strict]
-    cybercity-data build [PATH] [--out DIR] [--json] [--strict]
-    cybercity-data init ID --kind KIND --network-index INDEX [--path PATH]
+    cybercity-data check [PATH] [--json] [--strict] [--seed SEED]
+    cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--seed SEED]
+    cybercity-data init ID --kind KIND [--path PATH]
 
 Exit codes:
     0 — OK
@@ -24,6 +24,7 @@ import yaml
 from pydantic import ValidationError
 
 from . import __version__
+from .allocator import AllocationError, Allocator
 from .build import Builder
 from .check import Issue, NetworkChecker
 from .loader import NetworkLoader, ServiceAssets
@@ -57,6 +58,7 @@ class Result:
     render_skipped: str | None = None
     network: CityNetwork | None = None
     service_assets: list[ServiceAssets] = field(default_factory=list)
+    allocation_seed: int | None = None
 
     @property
     def exit_code(self) -> int:
@@ -79,6 +81,8 @@ class Result:
             out["rendered"] = [str(p) for p in self.rendered]
         if self.render_skipped is not None:
             out["render_skipped"] = self.render_skipped
+        if self.allocation_seed is not None:
+            out["allocation_seed"] = self.allocation_seed
         out["service_assets"] = len(self.service_assets)
         return out
 
@@ -99,6 +103,8 @@ class Result:
                 f"{c.services} services, {c.links} links; "
                 f"{len(self.errors)} errors, {len(self.warnings)} warnings."
             )
+        if self.allocation_seed is not None:
+            typer.echo(f"Allocation seed: {self.allocation_seed}")
         if self.rendered is not None:
             for p in self.rendered:
                 typer.echo(f"Wrote {p}")
@@ -115,7 +121,7 @@ def _load(path: Path) -> tuple[CityNetwork, list[Issue], list[ServiceAssets]]:
     return network, list(loader.issues), list(loader.service_assets)
 
 
-def _run_check(path: Path, strict: bool) -> Result:
+def _run_check(path: Path, strict: bool, seed: int | None = None) -> Result:
     result = Result(path=path, ok=False, strict=strict)
     try:
         network, loader_issues, loader_assets = _load(path)
@@ -132,8 +138,18 @@ def _run_check(path: Path, strict: bool) -> Result:
         result.error = traceback.format_exc()
         return result
 
+    try:
+        allocator = Allocator(network, seed=seed)
+        allocation = allocator.allocate()
+        result.allocation_seed = allocator.seed
+    except AllocationError as exc:
+        result.error = f"allocation error: {exc}"
+        return result
+    except Exception:
+        result.error = traceback.format_exc()
+        return result
 
-    report = NetworkChecker().check(network)
+    report = NetworkChecker(allocation=allocation).check(network)
     all_issues = [*loader_issues, *report.issues]
     result.errors = [i for i in all_issues if i.level == "error"]
     result.warnings = [i for i in all_issues if i.level == "warning"]
@@ -149,8 +165,10 @@ def _run_check(path: Path, strict: bool) -> Result:
     return result
 
 
-def _run_build(path: Path, out: Path, strict: bool, clean: bool) -> Result:
-    result = _run_check(path, strict=strict)
+def _run_build(
+    path: Path, out: Path, strict: bool, clean: bool, seed: int | None = None
+) -> Result:
+    result = _run_check(path, strict=strict, seed=seed)
     if not result.ok or result.error is not None:
         if result.error is None:
             result.render_skipped = (
@@ -173,7 +191,14 @@ def _run_build(path: Path, out: Path, strict: bool, clean: bool) -> Result:
                     shutil.rmtree(entry)
                 else:
                     entry.unlink()
-        rendered = Builder(network, service_assets=result.service_assets).render(target)
+        allocation = (
+            Allocator(network, seed=result.allocation_seed).allocate()
+            if result.allocation_seed is not None
+            else Allocator(network).allocate()
+        )
+        rendered = Builder(
+            network, allocation=allocation, service_assets=result.service_assets
+        ).render(target)
         result.rendered = rendered
     except Exception:
         result.ok = False
@@ -229,9 +254,13 @@ def check_cmd(
             "--strict", help="Treat warnings as errors (useful near v1.0)."
         ),
     ] = False,
+    seed: Annotated[
+        int | None,
+        typer.Option("--seed", help="Optional allocation seed for reproducibility."),
+    ] = None,
 ) -> None:
     """Validate the per-org layout under PATH."""
-    result = _run_check(path, strict=strict)
+    result = _run_check(path, strict=strict, seed=seed)
     _emit(result, json_out)
     raise typer.Exit(code=result.exit_code)
 
@@ -260,9 +289,13 @@ def build_cmd(
         bool,
         typer.Option("--clean", help="Remove existing output directory before build."),
     ] = False,
+    seed: Annotated[
+        int | None,
+        typer.Option("--seed", help="Optional allocation seed for reproducibility."),
+    ] = None,
 ) -> None:
     """Validate and build artifacts under <PATH>/<out>/ (default: build/)."""
-    result = _run_build(path, out, strict=strict, clean=clean)
+    result = _run_build(path, out, strict=strict, clean=clean, seed=seed)
     _emit(result, json_out)
     raise typer.Exit(code=result.exit_code)
 
@@ -273,10 +306,6 @@ def init_cmd(
     kind: Annotated[
         str,
         typer.Option("--kind", help="Organization kind (e.g. healthcare, finance)."),
-    ],
-    network_index: Annotated[
-        int,
-        typer.Option("--network-index", help="City-wide unique second octet (1-255)."),
     ],
     path: Annotated[
         Path,
@@ -309,7 +338,6 @@ def init_cmd(
             f"id: {org_id}\n"
             f'name: "{name}"\n'
             f"kind: {kind}\n"
-            f"network_index: {network_index}\n"
             "\n"
             "description: |\n"
             "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
@@ -323,7 +351,6 @@ def init_cmd(
             f"id: {org_id}\n"
             f'name: "{name}"\n'
             f"kind: {kind}\n"
-            f"network_index: {network_index}\n"
             "\n"
             "description: |\n"
             "  Опиши роль организации, типичные сервисы и связи с другими org.\n"
@@ -331,7 +358,6 @@ def init_cmd(
             "networks:\n"
             f"  - id: {org_id}-dmz\n"
             "    kind: dmz\n"
-            f"    cidr: 10.{network_index}.0.0/24\n"
             "\n"
             "services:\n"
             f"  - id: {org_id}-web\n"
@@ -340,7 +366,6 @@ def init_cmd(
             "    exposure: public\n"
             f"    host: www.{org_id}.corp\n"
             f"    network_id: {org_id}-dmz\n"
-            f"    bind_ip: 10.{network_index}.0.10\n"
             "\n"
             "links: []\n"
         )

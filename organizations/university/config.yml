@@ -1,7 +1,6 @@
 id: university
 name: "City State University"
 kind: education
-network_index: 15
 
 description: |
   Городской государственный университет. Обучает студентов, ведёт LMS,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: university-dmz
     kind: dmz
-    cidr: 10.15.1.0/24
   - id: university-lan
     kind: lan
-    cidr: 10.15.129.0/24
   - id: university-mgmt
     kind: mgmt
-    cidr: 10.15.253.0/24
 
 services:
   - id: uni-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.university.edu
     network_id: university-dmz
-    bind_ip: 10.15.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: lms.university.edu
     network_id: university-lan
-    bind_ip: 10.15.129.10
     auth: sso
     data_classification: internal
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: db.university.edu
     network_id: university-lan
-    bind_ip: 10.15.129.11
     auth: certificate
     data_classification: pii
     software:
@@ -74,7 +67,6 @@ services:
     exposure: public
     host: wifi.university.edu
     network_id: university-dmz
-    bind_ip: 10.15.1.11
     auth: none
     data_classification: public
     ports: [tcp/80, tcp/443, udp/53]
@@ -86,7 +78,6 @@ services:
     exposure: intranet
     host: backup.university.edu
     network_id: university-lan
-    bind_ip: 10.15.129.12
     auth: certificate
     data_classification: internal
     software:

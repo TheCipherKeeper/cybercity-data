@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from cybercity_data import CityNetwork
+from cybercity_data.allocator import Allocator
 from cybercity_data.loader import NetworkLoader, find_org_dirs, load_network
 
 
@@ -67,7 +68,6 @@ def test_load_l003_id_mismatch(tmp_path: Path) -> None:
         "id: different\n"
         "name: X\n"
         "kind: government\n"
-        "network_index: 1\n"
         "networks: []\n"
         "services: []\n",
         encoding="utf-8",
@@ -83,7 +83,6 @@ def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
         "id: x\n"
         "name: X\n"
         "kind: not-a-kind\n"
-        "network_index: 1\n"
         "networks: []\n"
         "services: []\n",
         encoding="utf-8",
@@ -92,17 +91,74 @@ def test_load_l002_per_org_schema_error(tmp_path: Path) -> None:
     assert any(i.code == "L002" for i in issues)
 
 
-def test_explicit_networks_are_used(tiny_path: Path) -> None:
-    network, _ = load_network(tiny_path)
-    org = next(o for o in network.organizations if o.id == "hospital")
-    assert len(org.networks) == 1
-    assert org.networks[0].cidr == "10.10.10.0/24"
+def test_load_rejects_legacy_network_index(tmp_path: Path) -> None:
+    """network_index is no longer accepted in config.yml."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
+        "name: X\n"
+        "kind: government\n"
+        "network_index: 1\n"
+        "networks: []\n"
+        "services: []\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    assert any(
+        i.code == "L002" and "network_index" in i.path and "extra" in i.message.lower()
+        for i in issues
+    )
 
 
-def test_explicit_bind_ip_preserved(tiny_path: Path) -> None:
-    network, _ = load_network(tiny_path)
-    svc = next(s for s in network.services if s.id == "hosp-web")
-    assert svc.bind_ip == "10.10.10.10"
+def test_load_rejects_legacy_cidr(tmp_path: Path) -> None:
+    """cidr is no longer accepted on network declarations."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
+        "name: X\n"
+        "kind: government\n"
+        "networks:\n"
+        "  - id: x-dmz\n"
+        "    kind: dmz\n"
+        "    cidr: 10.1.1.0/24\n"
+        "services: []\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    assert any(
+        i.code == "L002" and "cidr" in i.path and "extra" in i.message.lower()
+        for i in issues
+    )
+
+
+def test_load_rejects_legacy_bind_ip(tmp_path: Path) -> None:
+    """bind_ip is no longer accepted on service declarations."""
+    (tmp_path / "organizations").mkdir()
+    (tmp_path / "organizations" / "x").mkdir()
+    (tmp_path / "organizations" / "x" / "config.yml").write_text(
+        "id: x\n"
+        "name: X\n"
+        "kind: government\n"
+        "networks:\n"
+        "  - id: x-dmz\n"
+        "    kind: dmz\n"
+        "services:\n"
+        "  - id: svc\n"
+        "    name: S\n"
+        "    kind: web\n"
+        "    exposure: public\n"
+        "    host: svc.example\n"
+        "    network_id: x-dmz\n"
+        "    bind_ip: 10.1.1.10\n",
+        encoding="utf-8",
+    )
+    network, issues = load_network(tmp_path)
+    assert any(
+        i.code == "L002" and "bind_ip" in i.path and "extra" in i.message.lower()
+        for i in issues
+    )
 
 
 def test_injected_org_id(tiny_path: Path) -> None:
@@ -137,7 +193,6 @@ def test_load_l002_service_schema_error(tmp_path: Path) -> None:
         "id: x\n"
         "name: X\n"
         "kind: government\n"
-        "network_index: 1\n"
         "networks: []\n"
         "services:\n"
         "  - id: bad-svc\n"
@@ -158,7 +213,6 @@ def test_load_l002_link_schema_error(tmp_path: Path) -> None:
         "id: x\n"
         "name: X\n"
         "kind: government\n"
-        "network_index: 1\n"
         "networks: []\n"
         "services:\n"
         "  - id: svc\n"
@@ -167,7 +221,6 @@ def test_load_l002_link_schema_error(tmp_path: Path) -> None:
         "    exposure: public\n"
         "    host: svc.example\n"
         "    network_id: x-dmz\n"
-        "    bind_ip: 10.1.99.10\n"
         "links:\n"
         "  - from_service: svc\n"
         "    to_service: svc\n"
@@ -209,9 +262,17 @@ def test_load_final_assembly_validation_error(tmp_path: Path) -> None:
     (tmp_path / "organizations").mkdir()
     (tmp_path / "organizations" / "x").mkdir()
     (tmp_path / "organizations" / "x" / "config.yml").write_text(
-        "id: x\nname: X\nkind: government\nnetwork_index: 1\nnetworks: []\nservices: []\n",
+        "id: x\nname: X\nkind: government\nnetworks: []\nservices: []\n",
         encoding="utf-8",
     )
     # Direct CityNetwork construction with bad version should raise.
     with pytest.raises(ValidationError):
         CityNetwork(version="bad-version", organizations=[])
+
+
+def test_loaded_network_can_be_allocated(tiny_path: Path) -> None:
+    """After loading, the allocator can produce valid addressing."""
+    network, _ = load_network(tiny_path)
+    allocation = Allocator(network, seed=0).allocate()
+    assert allocation.net_cidr
+    assert allocation.svc_ip

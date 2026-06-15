@@ -1,7 +1,6 @@
 id: hall
 name: "City Hall"
 kind: government
-network_index: 1
 
 description: |
   Муниципальный центр города. Принимает налоговые декларации,
@@ -12,13 +11,10 @@ description: |
 networks:
   - id: hall-dmz
     kind: dmz
-    cidr: 10.1.1.0/24
   - id: hall-lan
     kind: lan
-    cidr: 10.1.129.0/24
   - id: hall-mgmt
     kind: mgmt
-    cidr: 10.1.253.0/24
 
 services:
   - id: hall-web
@@ -27,7 +23,6 @@ services:
     exposure: public
     host: portal.hall.corp
     network_id: hall-dmz
-    bind_ip: 10.1.1.10
     auth: sso
     data_classification: public
     software:
@@ -43,7 +38,6 @@ services:
     exposure: intranet
     host: mail.hall.corp
     network_id: hall-lan
-    bind_ip: 10.1.129.10
     auth: sso
     data_classification: internal
     software:
@@ -59,7 +53,6 @@ services:
     exposure: intranet
     host: fs.hall.corp
     network_id: hall-lan
-    bind_ip: 10.1.129.11
     auth: sso
     data_classification: confidential
     software:
@@ -75,7 +68,6 @@ services:
     exposure: intranet
     host: idp.hall.corp
     network_id: hall-lan
-    bind_ip: 10.1.129.12
     auth: mfa
     data_classification: restricted
     software:
@@ -91,7 +83,6 @@ services:
     exposure: public
     host: dns.hall.corp
     network_id: hall-dmz
-    bind_ip: 10.1.1.11
     auth: none
     data_classification: public
     software:
@@ -107,7 +98,6 @@ services:
     exposure: intranet
     host: ntp.hall.corp
     network_id: hall-lan
-    bind_ip: 10.1.129.13
     auth: none
     data_classification: internal
     software:
@@ -123,7 +113,6 @@ services:
     exposure: intranet
     host: log.hall.corp
     network_id: hall-lan
-    bind_ip: 10.1.129.14
     auth: certificate
     data_classification: internal
     software:

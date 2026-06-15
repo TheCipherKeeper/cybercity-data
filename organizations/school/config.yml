@@ -1,7 +1,6 @@
 id: school
 name: "City School District"
 kind: education
-network_index: 5
 
 description: |
   Городская школьная сеть. Обслуживает ученический портал, систему управления
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: school-dmz
     kind: dmz
-    cidr: 10.5.1.0/24
   - id: school-lan
     kind: lan
-    cidr: 10.5.129.0/24
   - id: school-mgmt
     kind: mgmt
-    cidr: 10.5.253.0/24
 
 services:
   - id: school-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.school.edu
     network_id: school-dmz
-    bind_ip: 10.5.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: public
     host: wifi.school.edu
     network_id: school-dmz
-    bind_ip: 10.5.1.11
     auth: none
     data_classification: public
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: lms.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.10
     auth: sso
     data_classification: internal
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.11
     auth: certificate
     data_classification: pii
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: idp.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.12
     auth: mfa
     data_classification: restricted
     software:
@@ -106,7 +97,6 @@ services:
     exposure: intranet
     host: cctv.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.13
     auth: local
     data_classification: internal
     software:
@@ -122,7 +112,6 @@ services:
     exposure: intranet
     host: backup.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.14
     auth: certificate
     data_classification: restricted
     software:
@@ -138,7 +127,6 @@ services:
     exposure: intranet
     host: printer.school.edu
     network_id: school-lan
-    bind_ip: 10.5.129.15
     auth: none
     data_classification: internal
     software:

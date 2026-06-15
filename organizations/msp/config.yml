@@ -1,7 +1,6 @@
 id: msp
 name: "City Managed Services Provider"
 kind: msp
-network_index: 17
 
 description: |
   Городской MSP, обслуживающий малый и средний бизнес города (розница,
@@ -12,13 +11,10 @@ description: |
 networks:
   - id: msp-dmz
     kind: dmz
-    cidr: 10.17.1.0/24
   - id: msp-lan
     kind: lan
-    cidr: 10.17.129.0/24
   - id: msp-mgmt
     kind: mgmt
-    cidr: 10.17.253.0/24
 
 services:
   - id: msp-rmm
@@ -27,7 +23,6 @@ services:
     exposure: public
     host: rmm.msp.corp
     network_id: msp-dmz
-    bind_ip: 10.17.1.10
     auth: mfa
     data_classification: restricted
     software:
@@ -43,7 +38,6 @@ services:
     exposure: intranet
     host: tickets.msp.corp
     network_id: msp-lan
-    bind_ip: 10.17.129.10
     auth: mfa
     data_classification: internal
     software:
@@ -59,7 +53,6 @@ services:
     exposure: intranet
     host: av.msp.corp
     network_id: msp-lan
-    bind_ip: 10.17.129.11
     auth: certificate
     data_classification: restricted
     software:
@@ -75,7 +68,6 @@ services:
     exposure: intranet
     host: backup.msp.corp
     network_id: msp-lan
-    bind_ip: 10.17.129.12
     auth: certificate
     data_classification: restricted
     software:
@@ -91,7 +83,6 @@ services:
     exposure: intranet
     host: db.msp.corp
     network_id: msp-lan
-    bind_ip: 10.17.129.13
     auth: certificate
     data_classification: confidential
     software:
@@ -107,7 +98,6 @@ services:
     exposure: public
     host: portal.msp.corp
     network_id: msp-dmz
-    bind_ip: 10.17.1.11
     auth: sso
     data_classification: public
     software:
@@ -123,7 +113,6 @@ services:
     exposure: mgmt
     host: vpn.msp.corp
     network_id: msp-mgmt
-    bind_ip: 10.17.253.10
     auth: certificate
     data_classification: restricted
     software:

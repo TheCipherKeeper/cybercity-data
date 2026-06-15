@@ -1,7 +1,6 @@
 id: transport
 name: "City Public Transport"
 kind: infra-utilities
-network_index: 11
 
 description: |
   Городской транспортный оператор: автобусы, трамваи, метро. Управляет
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: transport-dmz
     kind: dmz
-    cidr: 10.11.1.0/24
   - id: transport-lan
     kind: lan
-    cidr: 10.11.129.0/24
   - id: transport-mgmt
     kind: mgmt
-    cidr: 10.11.253.0/24
 
 services:
   - id: transport-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: transport.city.gov
     network_id: transport-dmz
-    bind_ip: 10.11.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: tickets.transport.corp
     network_id: transport-lan
-    bind_ip: 10.11.129.10
     auth: local
     data_classification: pci
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: gps.transport.corp
     network_id: transport-lan
-    bind_ip: 10.11.129.11
     auth: certificate
     data_classification: internal
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: cctv.transport.corp
     network_id: transport-lan
-    bind_ip: 10.11.129.12
     auth: local
     data_classification: internal
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: db.transport.corp
     network_id: transport-lan
-    bind_ip: 10.11.129.13
     auth: certificate
     data_classification: internal
     software:

@@ -1,7 +1,6 @@
 id: museum
 name: "City Museum"
 kind: education
-network_index: 37
 
 description: |
   Крупный городской музей. Публичный каталог экспонатов, система
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: museum-dmz
     kind: dmz
-    cidr: 10.37.1.0/24
   - id: museum-lan
     kind: lan
-    cidr: 10.37.129.0/24
   - id: museum-mgmt
     kind: mgmt
-    cidr: 10.37.253.0/24
 
 services:
   - id: museum-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: portal.museum.culture
     network_id: museum-dmz
-    bind_ip: 10.37.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: cms.museum.culture
     network_id: museum-lan
-    bind_ip: 10.37.129.10
     auth: sso
     data_classification: internal
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: db.museum.culture
     network_id: museum-lan
-    bind_ip: 10.37.129.11
     auth: certificate
     data_classification: internal
     software:
@@ -73,7 +66,6 @@ services:
     exposure: public
     host: wifi.museum.culture
     network_id: museum-dmz
-    bind_ip: 10.37.1.11
     auth: none
     data_classification: public
     ports: [tcp/80, tcp/443, udp/53]
@@ -85,7 +77,6 @@ services:
     exposure: intranet
     host: cctv.museum.culture
     network_id: museum-lan
-    bind_ip: 10.37.129.12
     auth: local
     data_classification: internal
     software:
@@ -101,7 +92,6 @@ services:
     exposure: intranet
     host: backup.museum.culture
     network_id: museum-lan
-    bind_ip: 10.37.129.13
     auth: certificate
     data_classification: internal
     software:

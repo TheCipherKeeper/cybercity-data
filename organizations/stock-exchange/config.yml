@@ -1,7 +1,6 @@
 id: stock-exchange
 name: "City Stock Exchange"
 kind: finance
-network_index: 39
 
 description: |
   Городская фондовая биржа. Управляет торговлей акциями, листингом,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: stock-exchange-dmz
     kind: dmz
-    cidr: 10.39.1.0/24
   - id: stock-exchange-lan
     kind: lan
-    cidr: 10.39.129.0/24
   - id: stock-exchange-mgmt
     kind: mgmt
-    cidr: 10.39.253.0/24
 
 services:
   - id: stock-web
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: portal.stock-exchange.corp
     network_id: stock-exchange-dmz
-    bind_ip: 10.39.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: trading.stock-exchange.corp
     network_id: stock-exchange-lan
-    bind_ip: 10.39.129.10
     auth: mfa
     data_classification: confidential
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: market.stock-exchange.corp
     network_id: stock-exchange-lan
-    bind_ip: 10.39.129.11
     auth: certificate
     data_classification: confidential
     software:
@@ -73,7 +66,6 @@ services:
     exposure: intranet
     host: db.stock-exchange.corp
     network_id: stock-exchange-lan
-    bind_ip: 10.39.129.12
     auth: certificate
     data_classification: restricted
     software:
@@ -89,7 +81,6 @@ services:
     exposure: intranet
     host: backup.stock-exchange.corp
     network_id: stock-exchange-lan
-    bind_ip: 10.39.129.13
     auth: certificate
     data_classification: internal
     software:
@@ -105,7 +96,6 @@ services:
     exposure: intranet
     host: idp.stock-exchange.corp
     network_id: stock-exchange-lan
-    bind_ip: 10.39.129.14
     auth: mfa
     data_classification: restricted
     software:

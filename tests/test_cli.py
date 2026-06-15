@@ -19,18 +19,16 @@ def _write(path: Path, text: str) -> None:
 def _make_broken_repo(root: Path) -> None:
     """Minimal repo that triggers validator errors (ids + refs) -> exit 1."""
     (root / "organizations").mkdir(parents=True)
-    for org_id, label, idx in (("x-a", "A", 1), ("x-b", "B", 2)):
+    for org_id, label in (("x-a", "A"), ("x-b", "B")):
         (root / "organizations" / org_id).mkdir()
         _write(
             root / "organizations" / org_id / "config.yml",
             f"id: {org_id}\n"
             f"name: City {label}\n"
             "kind: finance\n"
-            f"network_index: {idx}\n"
             "networks:\n"
             f"  - id: {org_id}-dmz\n"
             "    kind: dmz\n"
-            f"    cidr: 10.{idx}.{idx}.0/24\n"
             "services:\n"
             f"  - id: web\n"
             f"    name: {label} web\n"
@@ -38,7 +36,6 @@ def _make_broken_repo(root: Path) -> None:
             "    exposure: public\n"
             f"    host: {label.lower()}.example\n"
             f"    network_id: {org_id}-dmz\n"
-            f"    bind_ip: 10.{idx}.{idx}.10\n"
             + (
                 "links:\n"
                 "  - from_service: web\n"
@@ -60,19 +57,16 @@ def _make_minimal_repo(root: Path) -> None:
         "id: x\n"
         "name: X\n"
         "kind: government\n"
-        "network_index: 1\n"
         "networks:\n"
         "  - id: x-dmz\n"
         "    kind: dmz\n"
-        "    cidr: 10.1.1.0/24\n"
         "services:\n"
         "  - id: web\n"
         "    name: Web\n"
         "    kind: web\n"
         "    exposure: public\n"
         "    host: web.example\n"
-        "    network_id: x-dmz\n"
-        "    bind_ip: 10.1.1.10\n",
+        "    network_id: x-dmz\n",
     )
 
 
@@ -110,6 +104,7 @@ def test_check_json_shape_on_tiny(tiny_path: Path) -> None:
     }
     assert data["errors"] == []
     assert data["warnings"] == []
+    assert "allocation_seed" in data
 
 
 def test_build_creates_artifacts(tiny_path: Path, tmp_path: Path) -> None:
@@ -159,8 +154,6 @@ def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
             "hospital",
             "--kind",
             "healthcare",
-            "--network-index",
-            "10",
             "--path",
             str(tmp_path),
         ],
@@ -171,7 +164,7 @@ def test_init_creates_example_org(tiny_path: Path, tmp_path: Path) -> None:
     text = cfg.read_text(encoding="utf-8")
     assert "id: hospital" in text
     assert "kind: healthcare" in text
-    assert "network_index: 10" in text
+    assert "network_index" not in text
     assert "hospital-dmz" in text
     assert "hospital-web" in text
 
@@ -185,8 +178,6 @@ def test_init_creates_empty_org_with_flag(tiny_path: Path, tmp_path: Path) -> No
             "hospital",
             "--kind",
             "healthcare",
-            "--network-index",
-            "10",
             "--path",
             str(tmp_path),
             "--empty",
@@ -221,7 +212,7 @@ def test_check_exits_1_on_schema_error(tmp_path: Path) -> None:
     _make_minimal_repo(tmp_path)
     _write(
         tmp_path / "organizations" / "x" / "config.yml",
-        "id: x\nname: X\nkind: not-a-kind\nnetwork_index: 1\nnetworks: []\nservices: []\n",
+        "id: x\nname: X\nkind: not-a-kind\nnetworks: []\nservices: []\n",
     )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
@@ -248,8 +239,6 @@ def test_init_fails_without_organizations(tmp_path: Path) -> None:
             "x",
             "--kind",
             "government",
-            "--network-index",
-            "1",
             "--path",
             str(tmp_path),
         ],
@@ -267,8 +256,6 @@ def test_init_fails_when_org_exists(tiny_path: Path, tmp_path: Path) -> None:
             "x",
             "--kind",
             "government",
-            "--network-index",
-            "1",
             "--path",
             str(tmp_path),
         ],

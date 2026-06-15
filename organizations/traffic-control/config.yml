@@ -1,7 +1,6 @@
 id: traffic-control
 name: "City Traffic Control Center"
 kind: infra-utilities
-network_index: 41
 
 description: |
   Городской центр управления дорожным движением. Управляет светофорами,
@@ -12,16 +11,12 @@ description: |
 networks:
   - id: traffic-control-ot
     kind: ot
-    cidr: 10.41.128.0/24
   - id: traffic-control-dmz
     kind: dmz
-    cidr: 10.41.1.0/24
   - id: traffic-control-lan
     kind: lan
-    cidr: 10.41.129.0/24
   - id: traffic-control-mgmt
     kind: mgmt
-    cidr: 10.41.253.0/24
 
 services:
   - id: traffic-web
@@ -30,7 +25,6 @@ services:
     exposure: public
     host: traffic.city.gov
     network_id: traffic-control-dmz
-    bind_ip: 10.41.1.10
     auth: sso
     data_classification: public
     software:
@@ -46,7 +40,6 @@ services:
     exposure: ot
     host: scada.traffic.ot
     network_id: traffic-control-ot
-    bind_ip: 10.41.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -62,7 +55,6 @@ services:
     exposure: ot
     host: signals.traffic.ot
     network_id: traffic-control-ot
-    bind_ip: 10.41.128.11
     auth: local
     data_classification: restricted
     software:
@@ -78,7 +70,6 @@ services:
     exposure: intranet
     host: cctv.traffic.corp
     network_id: traffic-control-lan
-    bind_ip: 10.41.129.10
     auth: local
     data_classification: internal
     software:
@@ -94,7 +85,6 @@ services:
     exposure: intranet
     host: db.traffic.corp
     network_id: traffic-control-lan
-    bind_ip: 10.41.129.11
     auth: certificate
     data_classification: internal
     software:
@@ -110,7 +100,6 @@ services:
     exposure: intranet
     host: backup.traffic.corp
     network_id: traffic-control-lan
-    bind_ip: 10.41.129.12
     auth: certificate
     data_classification: internal
     software:
@@ -126,7 +115,6 @@ services:
     exposure: intranet
     host: emergency.traffic.corp
     network_id: traffic-control-lan
-    bind_ip: 10.41.129.13
     auth: mfa
     data_classification: restricted
     software:

@@ -1,7 +1,6 @@
 id: taxi
 name: "City Taxi & Rideshare"
 kind: retail
-network_index: 27
 
 description: |
   Городское такси и служба совместных поездок. Мобильное приложение,
@@ -10,13 +9,10 @@ description: |
 networks:
   - id: taxi-dmz
     kind: dmz
-    cidr: 10.27.1.0/24
   - id: taxi-lan
     kind: lan
-    cidr: 10.27.129.0/24
   - id: taxi-mgmt
     kind: mgmt
-    cidr: 10.27.253.0/24
 
 services:
   - id: taxi-app
@@ -25,7 +21,6 @@ services:
     exposure: public
     host: api.taxi.retail
     network_id: taxi-dmz
-    bind_ip: 10.27.1.10
     auth: sso
     data_classification: public
     software:
@@ -41,7 +36,6 @@ services:
     exposure: intranet
     host: dispatch.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.10
     auth: sso
     data_classification: internal
     software:
@@ -57,7 +51,6 @@ services:
     exposure: intranet
     host: gps.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.11
     auth: certificate
     data_classification: internal
     ports: [tcp/443]
@@ -69,7 +62,6 @@ services:
     exposure: intranet
     host: db.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.12
     auth: certificate
     data_classification: pii
     software:
@@ -85,7 +77,6 @@ services:
     exposure: intranet
     host: billing.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.13
     auth: mfa
     data_classification: pci
     software:
@@ -101,7 +92,6 @@ services:
     exposure: intranet
     host: backup.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.14
     auth: certificate
     data_classification: internal
     software:
@@ -117,7 +107,6 @@ services:
     exposure: intranet
     host: idp.taxi.retail
     network_id: taxi-lan
-    bind_ip: 10.27.129.15
     auth: mfa
     data_classification: restricted
     software:

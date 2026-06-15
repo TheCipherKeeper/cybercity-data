@@ -1,7 +1,6 @@
 id: railway
 name: "City Central Railway"
 kind: infra-utilities
-network_index: 35
 
 description: |
   Городская железнодорожная компания. Управляет пассажирскими поездами,
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: railway-dmz
     kind: dmz
-    cidr: 10.35.1.0/24
   - id: railway-lan
     kind: lan
-    cidr: 10.35.129.0/24
   - id: railway-mgmt
     kind: mgmt
-    cidr: 10.35.253.0/24
 
 services:
   - id: rail-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.railway.corp
     network_id: railway-dmz
-    bind_ip: 10.35.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: tickets.railway.corp
     network_id: railway-lan
-    bind_ip: 10.35.129.10
     auth: sso
     data_classification: confidential
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: ops.railway.corp
     network_id: railway-lan
-    bind_ip: 10.35.129.11
     auth: mfa
     data_classification: internal
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.railway.corp
     network_id: railway-lan
-    bind_ip: 10.35.129.12
     auth: certificate
     data_classification: internal
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.railway.corp
     network_id: railway-lan
-    bind_ip: 10.35.129.13
     auth: certificate
     data_classification: internal
     software:

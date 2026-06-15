@@ -1,7 +1,6 @@
 id: hospital
 name: "City General Hospital"
 kind: healthcare
-network_index: 10
 
 description: |
   Test fixture: 1 org with a single web service.
@@ -9,7 +8,6 @@ description: |
 networks:
   - id: hospital-dmz
     kind: dmz
-    cidr: 10.10.10.0/24
 
 services:
   - id: hosp-web
@@ -18,4 +16,3 @@ services:
     exposure: public
     host: portal.hospital.corp
     network_id: hospital-dmz
-    bind_ip: 10.10.10.10

@@ -1,7 +1,6 @@
 id: bio-lab
 name: "City Biosafety Laboratory"
 kind: healthcare
-network_index: 32
 
 description: |
   Городская биобезопасная лаборатория уровня BSL-3. Проводит исследования
@@ -11,13 +10,10 @@ description: |
 networks:
   - id: bio-lab-dmz
     kind: dmz
-    cidr: 10.32.1.0/24
   - id: bio-lab-lan
     kind: lan
-    cidr: 10.32.129.0/24
   - id: bio-lab-mgmt
     kind: mgmt
-    cidr: 10.32.253.0/24
 
 services:
   - id: bio-web
@@ -26,7 +22,6 @@ services:
     exposure: public
     host: portal.bio-lab.med
     network_id: bio-lab-dmz
-    bind_ip: 10.32.1.10
     auth: sso
     data_classification: public
     software:
@@ -42,7 +37,6 @@ services:
     exposure: intranet
     host: lims.bio-lab.med
     network_id: bio-lab-lan
-    bind_ip: 10.32.129.10
     auth: sso
     data_classification: phi
     software:
@@ -58,7 +52,6 @@ services:
     exposure: intranet
     host: seq.bio-lab.med
     network_id: bio-lab-lan
-    bind_ip: 10.32.129.11
     auth: certificate
     data_classification: phi
     software:
@@ -74,7 +67,6 @@ services:
     exposure: intranet
     host: db.bio-lab.med
     network_id: bio-lab-lan
-    bind_ip: 10.32.129.12
     auth: certificate
     data_classification: phi
     software:
@@ -90,7 +82,6 @@ services:
     exposure: intranet
     host: backup.bio-lab.med
     network_id: bio-lab-lan
-    bind_ip: 10.32.129.13
     auth: certificate
     data_classification: internal
     software:

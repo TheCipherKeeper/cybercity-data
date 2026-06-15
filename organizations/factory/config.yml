@@ -1,7 +1,6 @@
 id: factory
 name: "City Manufacturing Plant"
 kind: infra-utilities
-network_index: 10
 
 description: |
   Городское производственное предприятие. Содержит OT-сеть с PLC, MES и ERP.
@@ -10,16 +9,12 @@ description: |
 networks:
   - id: factory-ot
     kind: ot
-    cidr: 10.10.128.0/24
   - id: factory-dmz
     kind: dmz
-    cidr: 10.10.1.0/24
   - id: factory-lan
     kind: lan
-    cidr: 10.10.129.0/24
   - id: factory-mgmt
     kind: mgmt
-    cidr: 10.10.253.0/24
 
 services:
   - id: factory-plc
@@ -28,7 +23,6 @@ services:
     exposure: ot
     host: plc.factory.ot
     network_id: factory-ot
-    bind_ip: 10.10.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -44,7 +38,6 @@ services:
     exposure: ot
     host: hmi.factory.ot
     network_id: factory-ot
-    bind_ip: 10.10.128.11
     auth: local
     data_classification: restricted
     software:
@@ -60,7 +53,6 @@ services:
     exposure: intranet
     host: mes.factory.corp
     network_id: factory-lan
-    bind_ip: 10.10.129.10
     auth: sso
     data_classification: internal
     software:
@@ -76,7 +68,6 @@ services:
     exposure: intranet
     host: erp.factory.corp
     network_id: factory-lan
-    bind_ip: 10.10.129.11
     auth: sso
     data_classification: confidential
     software:
@@ -92,7 +83,6 @@ services:
     exposure: public
     host: portal.factory.corp
     network_id: factory-dmz
-    bind_ip: 10.10.1.10
     auth: sso
     data_classification: public
     software:

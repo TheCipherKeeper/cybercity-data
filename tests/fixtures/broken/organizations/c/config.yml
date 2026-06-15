@@ -1,12 +1,10 @@
 id: c
 name: "City C"
 kind: finance
-network_index: 3
 
 networks:
   - id: c-lan
     kind: lan
-    cidr: 10.3.3.0/24
 
 services:
   - id: mail
@@ -15,4 +13,3 @@ services:
     exposure: intranet
     host: mail.c.example
     network_id: c-lan
-    bind_ip: 10.3.3.10

@@ -4,17 +4,17 @@ Layout:
 
     organizations/
         <org-id>/
-            config.yml          # id, name, kind, network_index, description,
-                                # networks, services, links
+            config.yml          # id, name, kind, description, networks, services, links
             services/           # optional per-service asset directories
                 <svc-id>/
                     nginx.conf
                     certs/
                     ...
 
-Design goals for v2.0:
+Design goals for v3.0:
   * `org_id` is injected from the directory name.
-  * Networks and bind_ip are declared explicitly in each config.yml.
+  * Networks and services declare only logical placement (`kind`, `network_id`).
+  * Concrete IP addressing is generated later by the allocator.
   * Loader only assembles and validates; it never allocates resources.
   * Optional `services/<svc-id>/` directories hold runtime assets for a service.
 """

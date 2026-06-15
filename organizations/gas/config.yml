@@ -1,7 +1,6 @@
 id: gas
 name: "City Gas Utility"
 kind: infra-utilities
-network_index: 9
 
 description: |
   Городская газовая служба. Управляет распределительной сетью,
@@ -11,16 +10,12 @@ description: |
 networks:
   - id: gas-dmz
     kind: dmz
-    cidr: 10.9.1.0/24
   - id: gas-lan
     kind: lan
-    cidr: 10.9.129.0/24
   - id: gas-ot
     kind: ot
-    cidr: 10.9.128.0/24
   - id: gas-mgmt
     kind: mgmt
-    cidr: 10.9.253.0/24
 
 services:
   - id: gas-web
@@ -29,7 +24,6 @@ services:
     exposure: public
     host: portal.gas.corp
     network_id: gas-dmz
-    bind_ip: 10.9.1.10
     auth: sso
     data_classification: public
     software:
@@ -45,7 +39,6 @@ services:
     exposure: ot
     host: scada.gas.corp
     network_id: gas-ot
-    bind_ip: 10.9.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -61,7 +54,6 @@ services:
     exposure: ot
     host: hmi.gas.corp
     network_id: gas-ot
-    bind_ip: 10.9.128.11
     auth: local
     data_classification: restricted
     software:
@@ -77,7 +69,6 @@ services:
     exposure: intranet
     host: db.gas.corp
     network_id: gas-lan
-    bind_ip: 10.9.129.10
     auth: certificate
     data_classification: confidential
     software:
@@ -93,7 +84,6 @@ services:
     exposure: intranet
     host: backup.gas.corp
     network_id: gas-lan
-    bind_ip: 10.9.129.11
     auth: certificate
     data_classification: internal
     software:

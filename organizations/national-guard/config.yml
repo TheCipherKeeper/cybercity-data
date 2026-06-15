@@ -1,7 +1,6 @@
 id: national-guard
 name: "City National Guard Base"
 kind: government
-network_index: 33
 
 description: |
   Городская база национальной гвардии. Обеспечивает правопорядок,
@@ -12,13 +11,10 @@ description: |
 networks:
   - id: national-guard-dmz
     kind: dmz
-    cidr: 10.33.1.0/24
   - id: national-guard-lan
     kind: lan
-    cidr: 10.33.129.0/24
   - id: national-guard-mgmt
     kind: mgmt
-    cidr: 10.33.253.0/24
 
 services:
   - id: guard-web
@@ -27,7 +23,6 @@ services:
     exposure: public
     host: portal.national-guard.gov
     network_id: national-guard-dmz
-    bind_ip: 10.33.1.10
     auth: sso
     data_classification: public
     software:
@@ -43,7 +38,6 @@ services:
     exposure: intranet
     host: cad.national-guard.gov
     network_id: national-guard-lan
-    bind_ip: 10.33.129.10
     auth: mfa
     data_classification: restricted
     software:
@@ -59,7 +53,6 @@ services:
     exposure: intranet
     host: cctv.national-guard.gov
     network_id: national-guard-lan
-    bind_ip: 10.33.129.11
     auth: local
     data_classification: restricted
     software:
@@ -75,7 +68,6 @@ services:
     exposure: intranet
     host: db.national-guard.gov
     network_id: national-guard-lan
-    bind_ip: 10.33.129.12
     auth: certificate
     data_classification: restricted
     software:
@@ -91,7 +83,6 @@ services:
     exposure: intranet
     host: backup.national-guard.gov
     network_id: national-guard-lan
-    bind_ip: 10.33.129.13
     auth: certificate
     data_classification: internal
     software:

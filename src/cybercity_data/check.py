@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .allocator import Allocation
     from .models import CityNetwork
 
 
@@ -53,7 +54,14 @@ _CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,}$")
 
 
 class NetworkChecker:
-    """Run every cross-field rule against an assembled `CityNetwork`."""
+    """Run every cross-field rule against an assembled `CityNetwork`.
+
+    The checker needs an :class:`~cybercity_data.allocator.Allocation` because
+    concrete addressing is no longer part of the declarative model.
+    """
+
+    def __init__(self, allocation: Allocation | None = None) -> None:
+        self.allocation = allocation
 
     def check(self, network: CityNetwork) -> Report:
         return Report(
@@ -117,9 +125,12 @@ class NetworkChecker:
     # ─────────────────────────────────────────────────────────────────
     def _network_index(self, network: CityNetwork) -> list[Issue]:
         out: list[Issue] = []
+        if self.allocation is None:
+            return out
         indices: dict[int, str] = {}
         for i, org in enumerate(network.organizations):
-            if org.network_index in indices:
+            idx = self.allocation.network_index(org.id)
+            if idx in indices:
                 out.append(
                     Issue(
                         code="network-index",
@@ -127,12 +138,12 @@ class NetworkChecker:
                         level="error",
                         message=(
                             f"organization {org.id!r} reuses network_index "
-                            f"{org.network_index} with {indices[org.network_index]!r}"
+                            f"{idx} with {indices[idx]!r}"
                         ),
                     )
                 )
             else:
-                indices[org.network_index] = org.id
+                indices[idx] = org.id
         return out
 
     # ─────────────────────────────────────────────────────────────────
@@ -214,20 +225,26 @@ class NetworkChecker:
     # ─────────────────────────────────────────────────────────────────
     def _ip_in_network(self, network: CityNetwork) -> list[Issue]:
         out: list[Issue] = []
+        if self.allocation is None:
+            return out
         net_by_id = {}
         for org in network.organizations:
             for n in org.networks:
                 net_by_id[n.id] = n
 
         for i, svc in enumerate(network.services):
-            if svc.bind_ip is None or svc.network_id is None:
+            if svc.network_id is None:
                 continue
             net = net_by_id.get(svc.network_id)
             if net is None:
                 continue
+            bind_ip = self.allocation.svc_ip.get(svc.id)
+            cidr = self.allocation.net_cidr.get(net.id)
+            if bind_ip is None or cidr is None:
+                continue
             try:
-                addr = ipaddress.ip_address(svc.bind_ip)
-                cidr = ipaddress.ip_network(net.cidr, strict=False)
+                addr = ipaddress.ip_address(bind_ip)
+                net_addr = ipaddress.ip_network(cidr, strict=False)
             except ValueError as exc:
                 out.append(
                     Issue(
@@ -238,15 +255,15 @@ class NetworkChecker:
                     )
                 )
                 continue
-            if addr not in cidr:
+            if addr not in net_addr:
                 out.append(
                     Issue(
                         code="ip-in-network",
                         path=f"services[{i}].bind_ip",
                         level="error",
                         message=(
-                            f"service {svc.id!r} bind_ip {svc.bind_ip!r} is not in "
-                            f"{net.cidr} ({net.id})"
+                            f"service {svc.id!r} bind_ip {bind_ip!r} is not in "
+                            f"{cidr} ({net.id})"
                         ),
                     )
                 )
@@ -257,45 +274,55 @@ class NetworkChecker:
     # ─────────────────────────────────────────────────────────────────
     def _ip_unique(self, network: CityNetwork) -> list[Issue]:
         out: list[Issue] = []
+        if self.allocation is None:
+            return out
         seen: dict[str, dict[str, str]] = {}
         for i, svc in enumerate(network.services):
-            if svc.bind_ip is None or svc.network_id is None:
+            if svc.network_id is None:
+                continue
+            bind_ip = self.allocation.svc_ip.get(svc.id)
+            if bind_ip is None:
                 continue
             net_ips = seen.setdefault(svc.network_id, {})
-            if svc.bind_ip in net_ips:
-                other_id = net_ips[svc.bind_ip]
+            if bind_ip in net_ips:
+                other_id = net_ips[bind_ip]
                 out.append(
                     Issue(
                         code="ip-unique",
                         path=f"services[{i}].bind_ip",
                         level="error",
                         message=(
-                            f"service {svc.id!r} bind_ip {svc.bind_ip!r} is already "
+                            f"service {svc.id!r} bind_ip {bind_ip!r} is already "
                             f"used by service {other_id!r} in network {svc.network_id!r}"
                         ),
                     )
                 )
             else:
-                net_ips[svc.bind_ip] = svc.id
+                net_ips[bind_ip] = svc.id
         return out
 
     # ─────────────────────────────────────────────────────────────────
     # ip-scheme
     # ─────────────────────────────────────────────────────────────────
     def _ip_scheme(self, network: CityNetwork) -> list[Issue]:
-        """Validate that org networks live under 10.<network_index>.x.x."""
+        """Validate that allocated networks live under 10.<network_index>.x.x."""
         out: list[Issue] = []
+        if self.allocation is None:
+            return out
         for i, org in enumerate(network.organizations):
-            prefix = f"10.{org.network_index}."
+            prefix = f"10.{self.allocation.network_index(org.id)}."
             for j, net in enumerate(org.networks):
-                if not net.cidr.startswith(prefix):
+                cidr = self.allocation.net_cidr.get(net.id)
+                if cidr is None:
+                    continue
+                if not cidr.startswith(prefix):
                     out.append(
                         Issue(
                             code="ip-scheme",
                             path=f"organizations[{i}].networks[{j}].cidr",
                             level="error",
                             message=(
-                                f"network {net.id!r} cidr {net.cidr!r} does not start "
+                                f"network {net.id!r} cidr {cidr!r} does not start "
                                 f"with expected prefix {prefix!r} for org {org.id!r}"
                             ),
                         )
@@ -307,12 +334,20 @@ class NetworkChecker:
     # ─────────────────────────────────────────────────────────────────
     def _network_overlap(self, network: CityNetwork) -> list[Issue]:
         out: list[Issue] = []
+        if self.allocation is None:
+            return out
         nets = [n for o in network.organizations for n in o.networks]
         for i, a in enumerate(nets):
+            a_cidr = self.allocation.net_cidr.get(a.id)
+            if a_cidr is None:
+                continue
             for b in nets[i + 1 :]:
+                b_cidr = self.allocation.net_cidr.get(b.id)
+                if b_cidr is None:
+                    continue
                 try:
-                    na = ipaddress.ip_network(a.cidr, strict=False)
-                    nb = ipaddress.ip_network(b.cidr, strict=False)
+                    na = ipaddress.ip_network(a_cidr, strict=False)
+                    nb = ipaddress.ip_network(b_cidr, strict=False)
                 except ValueError:
                     continue
                 if na.overlaps(nb):
@@ -322,7 +357,7 @@ class NetworkChecker:
                             path="networks",
                             level="error",
                             message=(
-                                f"networks {a.id!r} ({a.cidr}) and {b.id!r} ({b.cidr}) overlap"
+                                f"networks {a.id!r} ({a_cidr}) and {b.id!r} ({b_cidr}) overlap"
                             ),
                         )
                     )
@@ -446,5 +481,5 @@ class NetworkChecker:
 
 
 # Convenience free function.
-def check(network: CityNetwork) -> Report:
-    return NetworkChecker().check(network)
+def check(network: CityNetwork, allocation: Allocation | None = None) -> Report:
+    return NetworkChecker(allocation=allocation).check(network)

@@ -1,7 +1,6 @@
 id: water
 name: "City Water Works"
 kind: infra-utilities
-network_index: 12
 
 description: |
   Городское водоканальное хозяйство. SCADA управляет очистными сооружениями,
@@ -10,16 +9,12 @@ description: |
 networks:
   - id: water-ot
     kind: ot
-    cidr: 10.12.128.0/24
   - id: water-dmz
     kind: dmz
-    cidr: 10.12.1.0/24
   - id: water-lan
     kind: lan
-    cidr: 10.12.129.0/24
   - id: water-mgmt
     kind: mgmt
-    cidr: 10.12.253.0/24
 
 services:
   - id: water-scada
@@ -28,7 +23,6 @@ services:
     exposure: ot
     host: scada.water.ot
     network_id: water-ot
-    bind_ip: 10.12.128.10
     auth: certificate
     data_classification: restricted
     software:
@@ -44,7 +38,6 @@ services:
     exposure: ot
     host: hmi.water.ot
     network_id: water-ot
-    bind_ip: 10.12.128.11
     auth: local
     data_classification: restricted
     software:
@@ -60,7 +53,6 @@ services:
     exposure: intranet
     host: db.water.corp
     network_id: water-lan
-    bind_ip: 10.12.129.10
     auth: certificate
     data_classification: internal
     software:
@@ -76,7 +68,6 @@ services:
     exposure: public
     host: water.city.gov
     network_id: water-dmz
-    bind_ip: 10.12.1.10
     auth: sso
     data_classification: public
     software:
