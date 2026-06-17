@@ -1,11 +1,14 @@
 # CyberCity — City Data
 
-[![Part of CyberCity](https://img.shields.io/badge/CyberCity-composition-blueviolet)](#)
+[![Part of CyberCity](https://img.shields.io/badge/CyberCity-composition-blueviolet)](https://github.com/TheCipherKeeper/cybercity)
 [![License: MIT](https://img.shields.io/badge/code-MIT-green)](LICENSE)
 [![Docs: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey)](docs/LICENSE-DOCS)
 
 Canonical declarative data layer for the CyberCity digital twin:
 organizations, networks, services, links.
+
+> Part of CyberCity — the 6-repo composition, contracts, and trust boundary
+> live in [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md).
 
 This repository models the IT/OT infrastructure of an abstract city as a
 directed graph: services are nodes, links are edges. Other tools consume this

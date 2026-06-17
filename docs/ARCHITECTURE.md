@@ -12,12 +12,16 @@
 
 | Слой | Репозиторий | Роль |
 |---|---|---|
-| Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder + allocator |
-| Симуляция | `cybercity-simulator` | запускает модель, эмулирует трафик и события |
-| UI | `cybercity-ui` | рисует граф из `build/topology.json` |
-| Агенты | `cybercity-agents` | LLM-генератор недостающих org'ов |
-| Blueprints | `cybercity-blueprints` | шаблоны организаций |
-| Сценарии / безопасность | `cybercity-scenarios` | внешний слой, потребляет эту модель |
+| Витрина | `cybercity` | обложка/индекс; канон композиции — `COMPOSITION.md` |
+| Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder + allocator + авторинг сценариев |
+| Runtime | `cybercity-engine` | событийное ядро, причинный граф, replay, эмуляция трафика, scoring |
+| Управление | `cybercity-manage` | контрольная плоскость: provisioning, reset/rollback, изоляция, квоты |
+| Коллектор | `cybercity-collector` | внешний out-of-band per-host коллектор; события в engine по Kafka |
+| Визуал | `cybercity-ui` | рисует граф из `build/topology.json` |
+
+> Единый источник правды композиции —
+> [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md).
+> Эта таблица — его краткая инлайн-копия; при расхождениях канон в cover-репо.
 
 ## Repository layout
 
