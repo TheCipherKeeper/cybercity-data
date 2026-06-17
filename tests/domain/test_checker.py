@@ -191,7 +191,7 @@ def test_software_cve_format(tiny_network: CityNetwork) -> None:
     assert any(i.code == "software" for i in report.errors)
 
 
-def test_decoy_criticality() -> None:
+def test_honeypot_criticality() -> None:
     network = _minimal_network(
         services=[
             Service(
@@ -204,26 +204,26 @@ def test_decoy_criticality() -> None:
                 network_id="a-dmz",
             ),
             Service(
-                id="decoy",
+                id="honeypot",
                 org_id="a",
-                name="Decoy",
+                name="Honeypot",
                 kind="iot",
                 exposure="intranet",
-                host="decoy.a.corp",
+                host="honeypot.a.corp",
                 network_id="a-lan",
                 criticality="critical",
-                decoy={"kind": "printer", "fingerprint": "realistic"},
+                honeypot={"kind": "printer", "fingerprint": "realistic"},
             ),
         ]
     )
     report = _check(network)
     assert any(
-        i.code == "decoy-criticality" and "cannot have criticality=critical" in i.message
+        i.code == "honeypot-criticality" and "cannot have criticality=critical" in i.message
         for i in report.errors
     )
 
 
-def test_decoy_write_real() -> None:
+def test_honeypot_write_real() -> None:
     network = _minimal_network(
         services=[
             Service(
@@ -236,19 +236,19 @@ def test_decoy_write_real() -> None:
                 network_id="a-lan",
             ),
             Service(
-                id="decoy",
+                id="honeypot",
                 org_id="a",
-                name="Decoy",
+                name="Honeypot",
                 kind="iot",
                 exposure="intranet",
-                host="decoy.a.corp",
+                host="honeypot.a.corp",
                 network_id="a-lan",
-                decoy={"kind": "printer", "fingerprint": "realistic"},
+                honeypot={"kind": "printer", "fingerprint": "realistic"},
             ),
         ],
         links=[
             {
-                "from_service": "decoy",
+                "from_service": "honeypot",
                 "to_service": "s1",
                 "kind": "db-write",
                 "protocol": "tcp/1521",
@@ -256,4 +256,7 @@ def test_decoy_write_real() -> None:
         ],
     )
     report = _check(network)
-    assert any(i.code == "decoy-write-real" and "decoy service" in i.message for i in report.errors)
+    assert any(
+        i.code == "honeypot-write-real" and "honeypot service" in i.message
+        for i in report.errors
+    )

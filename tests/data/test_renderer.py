@@ -120,7 +120,7 @@ def test_topology_shape(tiny_network, tiny_allocation, tmp_path) -> None:
     node = topo["nodes"][0]
     assert "id" in node
     assert "org_id" in node
-    assert "is_mock" in node
+    assert "is_honeypot" in node
     assert "known_weakness" not in node
     assert "attack_chain" not in topo["edges"][0]
 
@@ -136,7 +136,7 @@ def test_markdown_has_sections(tiny_network, tiny_allocation, tmp_path) -> None:
         "## Организации",
         "## Сетевая связность",
         "## Сервисы",
-        "## Имитационные сервисы",
+        "## Honeypot-сервисы",
     ]:
         assert header in text, f"missing section: {header}"
 
@@ -159,7 +159,7 @@ def test_topology_summary_matches(tiny_network, tiny_allocation, tmp_path) -> No
     assert summary["organizations"] == 3
     assert summary["services"] == 4
     assert summary["links"] == 1
-    assert summary["mock_services"] == 1
+    assert summary["honeypot_services"] == 1
 
 
 def test_render_preserves_unchanged_files(tiny_network, tiny_allocation, tmp_path) -> None:

@@ -9,7 +9,7 @@
 | [0001](0001-per-org-layout.md) | Per-org layout; loader собирает in-memory `CityNetwork` | Accepted |
 | [0002](0002-pydantic-v2-extra-forbid.md) | Pydantic v2, `extra="forbid"` | Accepted |
 | [0003](0003-explicit-networks-ip-v2.md) | Явные сети и IP-адреса в v2.0 | Superseded (см. ADR-0016) |
-| [0004](0004-service-decoy-mock.md) | `Service.decoy` помечает simulation-only mock-сервисы | Accepted |
+| [0004](0004-service-decoy-mock.md) | `Service.decoy` помечает simulation-only mock-сервисы | Superseded (см. ADR-0019) |
 | [0005](0005-org-id-injected-by-loader.md) | `org_id` инъецируется loader'ом, не повторяется в YAML | Accepted |
 | [0006](0006-cli-commands-exit-codes.md) | CLI: `check`, `build`, `init`; exit codes 0/1 | Accepted |
 | [0007](0007-build-artifacts.md) | Базовые артефакты сборки | Accepted |
@@ -24,6 +24,7 @@
 | [0016](0016-generated-networks-allocator.md) | Сети и IP генерируются `allocator.py`; декларативная модель описывает только топологию | Accepted |
 | [0017](0017-layered-cli-architecture.md) | Слоистая архитектура CLI: Controller → Service → UseCase → Data/IO | Accepted |
 | [0018](0018-pipeline-steps-testable.md) | Service-методы разложены в именованные pipeline-шаги | Accepted |
+| [0019](0019-service-honeypot-purpose.md) | `Service.honeypot` — флаг назначения-наживки (переименование из `decoy`) | Accepted |
 
 Формат ADR — в
 [`cybercity/CONVENTIONS.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/CONVENTIONS.md).

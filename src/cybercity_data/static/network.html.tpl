@@ -459,12 +459,12 @@
 
       node.append('circle')
         .attr('class', 'halo')
-        .attr('r', d => d.is_mock ? 13 : 17)
+        .attr('r', d => d.is_honeypot ? 13 : 17)
         .attr('stroke', d => (CRITICALITY[d.criticality] || {}).color || '#adb5bd');
 
       node.append('circle')
         .attr('class', 'core')
-        .attr('r', d => d.is_mock ? 10 : 14)
+        .attr('r', d => d.is_honeypot ? 10 : 14)
         .attr('fill', d => (KINDS[d.kind] || {}).color || DEFAULT_KIND_COLOR)
         .attr('stroke', d => orgColor(d.org_id));
 
@@ -604,7 +604,7 @@
             <p><strong>Auth:</strong> <span class="value">${d.auth}</span></p>
             <p><strong>Данные:</strong> <span class="value">${d.data_classification}</span></p>
             ${ports ? `<p><strong>Порты:</strong> ${ports}</p>` : ''}
-            ${d.is_mock ? '<p><span class="badge" style="background:rgba(255,107,107,0.2);color:#ff6b6b">mock / decoy</span></p>' : ''}
+            ${d.is_honeypot ? '<p><span class="badge" style="background:rgba(255,107,107,0.2);color:#ff6b6b">honeypot</span></p>' : ''}
           </div>
           ${renderConnections('Исходящие связи', outgoing, 'target')}
           ${renderConnections('Входящие связи', incoming, 'source')}

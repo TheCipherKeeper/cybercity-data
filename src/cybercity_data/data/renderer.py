@@ -108,7 +108,7 @@ class ArtifactRenderer:
                     "criticality": s.criticality,
                     "ports": list(s.ports),
                     "os_hint": s.os_hint,
-                    "is_mock": s.decoy is not None,
+                    "is_honeypot": s.honeypot is not None,
                     "host": s.host,
                 }
             )
@@ -139,7 +139,7 @@ class ArtifactRenderer:
                 "networks": sum(len(o.networks) for o in network.organizations),
                 "services": len(network.services),
                 "links": len(network.links),
-                "mock_services": sum(1 for s in network.services if s.decoy is not None),
+                "honeypot_services": sum(1 for s in network.services if s.honeypot is not None),
             },
             "nodes": nodes,
             "edges": edges,
@@ -188,7 +188,7 @@ class ArtifactRenderer:
                 "criticality": s.criticality,
                 "ports": list(s.ports),
                 "status": "up",
-                "decoy": s.decoy is not None,
+                "honeypot": s.honeypot is not None,
                 "can_reach": sorted(set(can_reach.get(s.id, []))),
                 "reachable_from": sorted(set(reachable_from.get(s.id, []))),
             }
@@ -199,12 +199,12 @@ class ArtifactRenderer:
                     "version": s.software.version,
                     "cve_id": s.software.cve_id,
                 }
-            if s.decoy is not None:
-                entry["decoy_profile"] = {
-                    "kind": s.decoy.kind,
-                    "fingerprint": s.decoy.fingerprint,
-                    "os_hint": s.decoy.os_hint,
-                    "note": s.decoy.note,
+            if s.honeypot is not None:
+                entry["honeypot_profile"] = {
+                    "kind": s.honeypot.kind,
+                    "fingerprint": s.honeypot.fingerprint,
+                    "os_hint": s.honeypot.os_hint,
+                    "note": s.honeypot.note,
                 }
             services.append(entry)
 
@@ -280,7 +280,7 @@ class ArtifactRenderer:
                 "data_classification": s.data_classification,
                 "criticality": s.criticality,
                 "ports": list(s.ports),
-                "is_mock": s.decoy is not None,
+                "is_honeypot": s.honeypot is not None,
             }
             if s.software is not None:
                 entry["software"] = {
@@ -297,7 +297,7 @@ class ArtifactRenderer:
                 "meta": {"source_version": network.version},
                 "summary": {
                     "public_services": len(surface),
-                    "mock_services": sum(1 for s in surface if s["is_mock"]),
+                    "honeypot_services": sum(1 for s in surface if s["is_honeypot"]),
                 },
                 "services": surface,
             },
@@ -454,7 +454,7 @@ class ArtifactRenderer:
         n_svcs = len(network.services)
         n_links = len(network.links)
         n_nets = sum(len(o.networks) for o in network.organizations)
-        n_mocks = sum(1 for s in network.services if s.decoy is not None)
+        n_honeypots = sum(1 for s in network.services if s.honeypot is not None)
 
         parts: list[str] = []
         parts.append("# CyberCity — Network Projection")
@@ -472,7 +472,7 @@ class ArtifactRenderer:
         parts.append(f"- **Сервисов:** {n_svcs}")
         parts.append(f"- **Сетей:** {n_nets}")
         parts.append(f"- **Связей:** {n_links}")
-        parts.append(f"- **Имитационных сервисов:** {n_mocks}")
+        parts.append(f"- **Honeypot-сервисов:** {n_honeypots}")
         parts.append("")
 
         by_kind: Counter[str] = Counter(o.kind for o in network.organizations)
@@ -542,7 +542,7 @@ class ArtifactRenderer:
         parts.append("")
         parts.append(
             "| id | org | network | bind_ip | kind | exposure | auth | "
-            "classification | criticality | software | ports | os_hint | mock |"
+            "classification | criticality | software | ports | os_hint | honeypot |"
         )
         parts.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
         for s in sorted(network.services, key=lambda x: x.id):
@@ -552,29 +552,29 @@ class ArtifactRenderer:
                 if s.software.version:
                     sw += f" {s.software.version}"
             ports = ", ".join(s.ports)
-            mock = s.decoy.kind if s.decoy else ""
+            honeypot = s.honeypot.kind if s.honeypot else ""
             bind_ip = allocation.bind_ip(s.id)
             os_hint = s.os_hint or ""
             parts.append(
                 f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | {bind_ip} | "
                 f"{s.kind} | {s.exposure} | {s.auth} | {s.data_classification} | "
-                f"{s.criticality} | {sw} | {ports} | {os_hint} | {mock} |"
+                f"{s.criticality} | {sw} | {ports} | {os_hint} | {honeypot} |"
             )
         parts.append("")
 
-        # ── 6. Имитационные сервисы ───────────────────────────────────
-        parts.append("## Имитационные сервисы")
+        # ── 6. Honeypot-сервисы ────────────────────────────────────────
+        parts.append("## Honeypot-сервисы")
         parts.append("")
-        mocks = [s for s in network.services if s.decoy is not None]
-        if mocks:
-            parts.append("| id | org | network | bind_ip | mock_kind | fingerprint | os_hint |")
+        honeypots = [s for s in network.services if s.honeypot is not None]
+        if honeypots:
+            parts.append("| id | org | network | bind_ip | honeypot_kind | fingerprint | os_hint |")
             parts.append("|---|---|---|---|---|---|---|")
-            for s in sorted(mocks, key=lambda x: x.id):
-                assert s.decoy is not None
+            for s in sorted(honeypots, key=lambda x: x.id):
+                assert s.honeypot is not None
                 parts.append(
                     f"| `{s.id}` | `{s.org_id}` | `{s.network_id or ''}` | "
                     f"{allocation.bind_ip(s.id)} | "
-                    f"{s.decoy.kind} | {s.decoy.fingerprint} | {s.decoy.os_hint or ''} |"
+                    f"{s.honeypot.kind} | {s.honeypot.fingerprint} | {s.honeypot.os_hint or ''} |"
                 )
         else:
             parts.append("_(нет)_")

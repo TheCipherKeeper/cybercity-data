@@ -18,8 +18,8 @@
     сборки.
 - Новые cross-field правила валидации:
   - `ip-unique` — запрещает дубли `bind_ip` внутри одной сети.
-  - `decoy-criticality` — decoy-сервисы не могут быть помечены `critical`.
-  - `decoy-write-real` — decoy-сервисы не могут выполнять `db-write` или
+  - `honeypot-criticality` — honeypot-сервисы не могут быть помечены `critical`.
+  - `honeypot-write-real` — honeypot-сервисы не могут выполнять `db-write` или
     `backup-of` против реальных сервисов.
 - Улучшения CLI:
   - `cybercity-data build --clean` удаляет выходной каталог перед рендерингом.
@@ -38,6 +38,14 @@
   в builder.
 - GitHub Actions и GitLab CI теперь включают job typecheck и загружают все
   новые артефакты.
+- Поле `Service.decoy` переименовано в `Service.honeypot` (блок назначения-наживки);
+  артефакт-ключи `is_mock`/`mock_services`/`decoy_profile` →
+  `is_honeypot`/`honeypot_services`/`honeypot_profile`; id `decoy-printer-01` →
+  `honeypot-printer-01`. Слово «decoy» уходит из модели данных (см. ADR-0019).
+- Зафиксирована модель `runtime_kind ∈ {vm, container, lite}` (deployment-time, живёт
+  в `cybercity-manage`, НЕ в data). `lite` заменяет прежнее понятие «simulated».
+  Сквозное решение — umbrella
+  [ADR-0004](https://github.com/TheCipherKeeper/cybercity/blob/main/adr/0004-runtime-kind-vm-container-lite.md).
 
 ## [0.4.0] — 2026-06-14
 

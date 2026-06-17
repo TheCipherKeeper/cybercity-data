@@ -76,7 +76,7 @@ class NetworkChecker:
                 *self._exposure_network(network),
                 *self._self_loop(network),
                 *self._software(network),
-                *self._decoy(network),
+                *self._honeypot(network),
             ]
         )
 
@@ -436,38 +436,38 @@ class NetworkChecker:
         return out
 
     # ─────────────────────────────────────────────────────────────────
-    # decoy
+    # honeypot
     # ─────────────────────────────────────────────────────────────────
-    def _decoy(self, network: CityNetwork) -> list[Issue]:
+    def _honeypot(self, network: CityNetwork) -> list[Issue]:
         out: list[Issue] = []
-        is_decoy = {s.id: s.decoy is not None for s in network.services}
+        is_honeypot = {s.id: s.honeypot is not None for s in network.services}
         for i, svc in enumerate(network.services):
-            if svc.decoy is None:
+            if svc.honeypot is None:
                 continue
             if svc.criticality == "critical":
                 out.append(
                     Issue(
-                        code="decoy-criticality",
+                        code="honeypot-criticality",
                         path=f"services[{i}].criticality",
                         level="error",
-                        message=(f"decoy service {svc.id!r} cannot have criticality=critical"),
+                        message=(f"honeypot service {svc.id!r} cannot have criticality=critical"),
                     )
                 )
 
         write_kinds = {"db-write", "backup-of"}
         for j, link in enumerate(network.links):
-            if not is_decoy.get(link.from_service, False):
+            if not is_honeypot.get(link.from_service, False):
                 continue
             if link.kind not in write_kinds:
                 continue
-            if not is_decoy.get(link.to_service, True):
+            if not is_honeypot.get(link.to_service, True):
                 out.append(
                     Issue(
-                        code="decoy-write-real",
+                        code="honeypot-write-real",
                         path=f"links[{j}]",
                         level="error",
                         message=(
-                            f"decoy service {link.from_service!r} cannot {link.kind!r} "
+                            f"honeypot service {link.from_service!r} cannot {link.kind!r} "
                             f"real service {link.to_service!r}"
                         ),
                     )

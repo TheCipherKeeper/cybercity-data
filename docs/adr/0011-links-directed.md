@@ -22,5 +22,5 @@ Accepted
 
 ## Related
 
-- [ADR-0004](0004-service-decoy-mock.md) — decoy-сервисы.
+- [ADR-0019](0019-service-honeypot-purpose.md) — honeypot-сервисы (бывший `decoy`, см. ADR-0004).
 - [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) — cross-field правило `ids`.

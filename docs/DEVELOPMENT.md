@@ -50,7 +50,7 @@ uv run cybercity-data init my-org --kind government --network-index 42
 
 - Возвращать `list[Issue]`.
 - Не short-circuit'ить: собирать все находки.
-- Использовать семантические коды (`ids`, `ip-in-network`, `decoy-write-real`).
+- Использовать семантические коды (`ids`, `ip-in-network`, `honeypot-write-real`).
 
 ### Добавление артефакта сборки
 

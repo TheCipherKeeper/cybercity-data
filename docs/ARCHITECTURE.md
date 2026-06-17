@@ -139,7 +139,7 @@ network_id                       # логическое размещение; О
 software {vendor, product, version?, cve_id?}
 auth, data_classification, criticality
 ports, os_hint
-decoy {kind, fingerprint, os_hint, note}   # опциональный mock-сервис
+honeypot {kind, fingerprint, os_hint, note}   # опциональный honeypot (наживка, purpose)
 ```
 
 ### `Link`
@@ -196,13 +196,13 @@ cybercity-data init ID --kind KIND [--path PATH] [--empty]
 | `self-loop` | error | связь не указывает на саму себя |
 | `software` | error | `cve_id` соответствует `CVE-YYYY-NNNNN` (только формат) |
 | `assets` | warning | каталог ассетов сервиса соответствует объявленному сервису |
-| `decoy-criticality` | error | decoy-сервисы не помечены `critical` |
-| `decoy-write-real` | error | decoy-сервисы не пишут/бэкапят реальные сервисы |
+| `honeypot-criticality` | error | honeypot-сервисы не помечены `critical` |
+| `honeypot-write-real` | error | honeypot-сервисы не пишут/бэкапят реальные сервисы |
 
 ## ADR
 
 Архитектурные решения вынесены в отдельные файлы — см.
-[индекс ADR](adr/README.md) (`ADR-0001`..`ADR-0018`). Сквозные решения,
+[индекс ADR](adr/README.md) (`ADR-0001`..`ADR-0019`). Сквозные решения,
 затрагивающие несколько репозиториев, — в
 [`cybercity/adr/`](https://github.com/TheCipherKeeper/cybercity/blob/main/adr/).
 

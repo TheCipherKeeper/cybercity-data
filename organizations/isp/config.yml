@@ -58,7 +58,7 @@ services:
     data_classification: public
     ports: [tcp/80, tcp/443]
     criticality: low
-    decoy:
+    honeypot:
       kind: http
       fingerprint: known-cve
       os_hint: linux

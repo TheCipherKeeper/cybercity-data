@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted
+Superseded — см.
+[`ADR-0019`](0019-service-honeypot-purpose.md). Поле `Service.decoy` переименовано
+в `Service.honeypot` (назначение-наживка); cross-field-правила `decoy-criticality`/
+`decoy-write-real` → `honeypot-criticality`/`honeypot-write-real`. `runtime_kind`
+(deployment-time) — в `cybercity-manage`, см. umbrella ADR-0004. Тело ADR сохранено
+как история.
 
 ## Context
 

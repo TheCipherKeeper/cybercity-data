@@ -78,20 +78,20 @@ services:
     os_hint: linux
     ports: [tcp/443, tcp/80]
 
-  # Имитационный сервис (массовка для симуляции).
-  - id: mock-printer-01
-    name: "Mock printer"
+  # Honeypot-сервис (наживка, purpose-флаг; runtime_kind — НЕ здесь, deployment-time).
+  - id: honeypot-printer-01
+    name: "Honeypot printer"
     kind: iot
     exposure: intranet
-    host: mock-printer-01.hospital.corp
+    host: honeypot-printer-01.hospital.corp
     network_id: hospital-lan
     criticality: low
     ports: [tcp/9100, tcp/80]
-    decoy:
+    honeypot:
       kind: printer
       fingerprint: realistic
       os_hint: linux-embedded
-      note: "simulation-only endpoint"
+      note: "honeypot endpoint"
 
 # Связи, в которых ЭТА организация - источник.
 links:
@@ -128,7 +128,8 @@ IP сервисов (`bind_ip`) выдаются внутри соответст
 - **Не указывай `network_index`, `cidr`, `bind_ip`.** Эти поля удалены из декларативной модели.
 - **Опциональные ассеты сервисов** — в `services/<svc-id>/`. Имя папки должно
   совпадать с `id` сервиса из `config.yml`; иначе loader выдаст warning.
-- **`decoy` — имитационный сервис.** Используется для плотности симуляции, не связан с security-слоем.
+- **`honeypot` — флаг назначения-наживки (honeypot/bait).** `runtime_kind` (vm/container/lite) —
+  deployment-time, живёт в `cybercity-manage`, НЕ здесь.
 - **links живут в папке from-организации.**
 - **Уникальность `(from, to, kind)`** для link'ов.
 - **Underscore-папки игнорируются.** `_archive/`, `_draft/`, `_wip/`.

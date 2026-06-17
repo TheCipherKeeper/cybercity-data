@@ -3,7 +3,7 @@ name: "City Power & Light"
 kind: infra-utilities
 
 description: |
-  Test fixture: 1 org with an OT network, 1 service and 1 decoy.
+  Test fixture: 1 org with an OT network, 1 service and 1 honeypot.
 
 networks:
   - id: power-ot
@@ -24,15 +24,15 @@ services:
       version: "16.0"
     ports: [tcp/102]
 
-  - id: decoy-printer-01
-    name: "Decoy printer"
+  - id: honeypot-printer-01
+    name: "Honeypot printer"
     kind: iot
     exposure: ot
-    host: decoy-printer-01.power.ot
+    host: honeypot-printer-01.power.ot
     network_id: power-ot
     ports: [tcp/9100, tcp/80]
-    decoy:
+    honeypot:
       kind: printer
       fingerprint: realistic
       os_hint: linux-embedded
-      note: "mock IoT endpoint"
+      note: "honeypot IoT endpoint"

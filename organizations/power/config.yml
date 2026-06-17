@@ -108,18 +108,18 @@ services:
     ports: [tcp/9392]
     criticality: high
 
-  - id: decoy-printer-01
-    name: "Mock OT printer"
+  - id: honeypot-printer-01
+    name: "Honeypot OT printer"
     kind: iot
     exposure: ot
-    host: decoy-printer-01.power.ot
+    host: honeypot-printer-01.power.ot
     network_id: power-ot
     ports: [tcp/9100, tcp/80]
-    decoy:
+    honeypot:
       kind: printer
       fingerprint: realistic
       os_hint: linux-embedded
-      note: "mock IoT endpoint for simulation density"
+      note: "honeypot IoT endpoint for simulation density"
 
 links:
   - from_service: power-web
@@ -178,9 +178,9 @@ links:
     encryption: tls
     label: "telemetry DB backup"
 
-  - from_service: decoy-printer-01
+  - from_service: honeypot-printer-01
     to_service: hall-dns
     kind: dns-query
     protocol: udp/53
     encryption: none
-    label: "mock device DNS resolution"
+    label: "honeypot device DNS resolution"
