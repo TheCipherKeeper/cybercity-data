@@ -1,61 +1,63 @@
-# CyberCity — Data Architecture
+# CyberCity Data — Архитектура
 
-> **TL;DR.** `cybercity-data` — canonical declarative data layer for the CyberCity digital twin:
-> organizations, networks, services, links. `check` validates; `build` writes artifacts.
-> Concrete IP addressing is generated, not declared.
+> **TL;DR.** `cybercity-data` — канонический декларативный слой данных
+> цифрового двойника CyberCity: организации, сети, сервисы, связи. `check`
+> валидирует; `build` пишет артефакты. Конкретная IP-адресация генерируется, а
+> не декларируется.
+
+> Системная архитектура (контекст, доверительная граница, слои развёртывания) —
+> в [`cybercity/ARCHITECTURE.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/ARCHITECTURE.md).
+> Состав проекта и контракты — в
+> [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md).
+> Ниже — только внутреннее устройство репозитория данных.
 
 - [README](../README.md)
-- [Per-org layout conventions](ORGANIZATIONS.md)
-- [CI/CD pipelines](PIPELINES.md)
+- [Conventions per-org layout](ORGANIZATIONS.md)
+- [CI/CD-пайплайны](PIPELINES.md)
+- [Поток данных](DATA_FLOW.md)
+- [Руководство разработчика](DEVELOPMENT.md)
+- [Индекс ADR](adr/README.md)
 
-## Composition
-
-| Слой | Репозиторий | Роль |
-|---|---|---|
-| Витрина | `cybercity` | обложка/индекс; канон композиции — `COMPOSITION.md` |
-| Данные (этот репо) | `cybercity-data` | YAML-модель + loader + checker + builder + allocator + авторинг сценариев |
-| Runtime | `cybercity-engine` | событийное ядро, причинный граф, replay, эмуляция трафика, scoring |
-| Управление | `cybercity-manage` | контрольная плоскость: provisioning, reset/rollback, изоляция, квоты |
-| Коллектор | `cybercity-collector` | внешний out-of-band per-host коллектор; события в engine по Kafka |
-| Визуал | `cybercity-ui` | рисует граф из `build/topology.json` |
-
-> Единый источник правды композиции —
-> [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md).
-> Эта таблица — его краткая инлайн-копия; при расхождениях канон в cover-репо.
-
-## Repository layout
+## Структура репозитория
 
 ```
 cybercity-data/
-├── README.md                    ← quickstart
-├── LICENSE                      ← code / YAML license
-├── pyproject.toml               ← package + CLI `cybercity-data`
+├── README.md                    ← quick start + сводка
+├── AGENTS.md                    ← правила для AI-агентов
+├── CONTRIBUTING.md              ← указатель → docs/DEVELOPMENT.md
+├── CHANGELOG.md
+├── LICENSE                      ← лицензия на код / YAML (MIT)
+├── LICENSE-DOCS                 ← лицензия на документацию (CC BY 4.0)
+├── pyproject.toml               ← пакет + CLI `cybercity-data`
 ├── .gitlab-ci.yml               ← lint / test / check / build
 ├── docs/
 │   ├── ARCHITECTURE.md          ← вы здесь
+│   ├── DEVELOPMENT.md           ← руководство разработчика
+│   ├── DATA_FLOW.md             ← поток данных
 │   ├── ORGANIZATIONS.md         ← per-org layout conventions
-│   └── LICENSE-DOCS             ← docs license
+│   ├── PIPELINES.md             ← CI/CD-пайплайны
+│   └── adr/                     ← архитектурные решения (NNNN-*.md + индекс)
 ├── organizations/
 │   └── <org>/
-│       ├── config.yml           # per-organization data (v3.0 logical only)
-│       └── services/            # optional per-service asset directories
+│       ├── config.yml           # данные организации (v3.0 — только логика)
+│       └── services/            # опциональные ассеты сервисов
 ├── src/cybercity_data/
-│   ├── domain/                  # pure business logic
-│   │   ├── models.py            # Pydantic v2 schema (declarative layer)
-│   │   ├── allocator.py         # automatic network / IP allocation
-│   │   └── checker.py           # cross-field rules
-│   ├── data/                    # IO adapters
+│   ├── domain/                  # чистая бизнес-логика
+│   │   ├── models.py            # Pydantic v2 схема (декларативный слой)
+│   │   ├── allocator.py         # автоматическая аллокация сетей / IP
+│   │   └── checker.py           # cross-field правила
+│   ├── data/                    # IO-адаптеры
 │   │   ├── loader.py            # per-org → CityNetwork
-│   │   ├── renderer.py          # artifact string generation
-│   │   ├── filesystem.py        # disk writer / cleaner
-│   │   ├── git.py               # previous-build diff reader
-│   │   └── zip.py               # engine.zip bundler
-│   ├── use_cases/               # orchestration
+│   │   ├── renderer.py          # генерация артефактов
+│   │   ├── filesystem.py        # запись на диск / очистка
+│   │   ├── git.py               # чтение диффа с предыдущей сборкой
+│   │   └── zip.py               # сборщик engine.zip
+│   ├── use_cases/               # оркестрация
 │   │   ├── check.py             # CheckUseCase
 │   │   ├── build.py             # BuildUseCase
 │   │   ├── init.py              # InitUseCase
-│   │   └── validate_step.py     # shared load/allocate/check pipeline
-│   ├── dto/                     # use-case result DTOs
+│   │   └── validate_step.py     # общий pipeline load/allocate/check
+│   ├── dto/                     # result DTO use-case'ов
 │   │   ├── build_result.py
 │   │   ├── check_result.py
 │   │   ├── counts.py
@@ -66,11 +68,11 @@ cybercity-data/
 │   │   ├── init.py
 │   │   └── exceptions.py
 │   ├── controllers/             # CLI + presenters
-│   │   ├── app.py               # Typer application
-│   │   ├── commands.py          # command registration
-│   │   ├── dependencies.py      # CLI dependency injection
-│   │   ├── responses.py         # human / JSON output formatting
-│   │   └── handlers/            # command handlers
+│   │   ├── app.py               # Typer-приложение
+│   │   ├── commands.py          # регистрация команд
+│   │   ├── dependencies.py      # DI для CLI
+│   │   ├── responses.py         # вывод human / JSON
+│   │   └── handlers/            # обработчики команд
 │   │       ├── build.py
 │   │       ├── check.py
 │   │       └── init.py
@@ -94,49 +96,50 @@ cybercity-data/
 │   │   └── test_init.py
 │   └── controllers/
 │       └── test_cli.py
-└── build/                       ← generated artifacts (gitignored)
-    ├── network.json             # canonical source dump (no generated IPs)
-    ├── network.md               # human-readable projection
+└── build/                       ← сгенерированные артефакты (gitignored)
+    ├── network.json             # канонический дамп (без сгенерированных IP)
+    ├── network.md               # человекочитаемая проекция
     ├── schema.json              # JSON Schema
-    ├── topology.json            # graph for UI / simulator
-    ├── network.html             # self-contained interactive viewer
-    └── engine.zip               # bundled runtime package for cybercity-engine
+    ├── topology.json            # граф для UI / симулятора
+    ├── network.html             # самодостаточный интерактивный просмотрщик
+    └── engine.zip               # пакет runtime для cybercity-engine
 ```
 
-## Data model (v3.0)
+## Модель данных (v3.0)
 
 ### `Organization`
 
 ```
 id, name, kind
 description
-networks[]                       # REQUIRED in v3.0
+networks[]                       # ОБЯЗАТЕЛЬНО в v3.0
 ```
 
 ### `Network`
 
 ```
-id, org_id, name, kind           # kind drives generated CIDR
+id, org_id, name, kind           # kind задаёт генерируемый CIDR
 description
 ```
 
 `kind ∈ {dmz, lan, ot, mgmt, internet}`.
 
-### `Link` kinds
+### Типы `Link`
 
 `kind ∈ {api-call, auth, db-read, db-write, log-sink, backup-of, trusts, vendor-vpn, dns-query, ntp-query}`.
 
-Links are always directed. If a relationship is bidirectional, declare two explicit links.
+Связи всегда направленные. Если отношение двунаправленное — декларируются две
+явные связи.
 
 ### `Service`
 
 ```
 id, org_id, name, description?, kind, exposure, host
-network_id                       # logical placement; REQUIRED in v3.0
+network_id                       # логическое размещение; ОБЯЗАТЕЛЬНО в v3.0
 software {vendor, product, version?, cve_id?}
 auth, data_classification, criticality
 ports, os_hint
-decoy {kind, fingerprint, os_hint, note}   # optional mock service
+decoy {kind, fingerprint, os_hint, note}   # опциональный mock-сервис
 ```
 
 ### `Link`
@@ -149,16 +152,16 @@ encryption, label
 ### `CityNetwork`
 
 ```
-version                            # schema version, code constant
+version                            # версия схемы, константа в коде
 organizations[], services[], links[]
 ```
 
-### `Allocation` (generated)
+### `Allocation` (генерируется)
 
 ```
-org_index: dict[str, int]          # network_index per org
-net_cidr: dict[str, str]           # CIDR per network
-svc_ip: dict[str, str]             # bind_ip per service
+org_index: dict[str, int]          # network_index на org
+net_cidr: dict[str, str]           # CIDR на сеть
+svc_ip: dict[str, str]             # bind_ip на сервис
 ```
 
 ## CLI
@@ -169,69 +172,58 @@ cybercity-data build [PATH] [--out DIR] [--json] [--strict] [--clean] [--seed SE
 cybercity-data init ID --kind KIND [--path PATH] [--empty]
 ```
 
-- `check` — validate only.
-- `build` — validate + write artifacts; skips on errors.
-- `init` — scaffold a new org directory. By default includes an example network and service; `--empty` keeps lists blank.
-- `--strict` — treat warnings as errors.
-- `--clean` — remove the output directory before rendering.
-- `--seed` — reproducible allocation; without it each build uses a fresh random allocation.
+- `check` — только валидация.
+- `build` — валидация + запись артефактов; пропускается при ошибках.
+- `init` — скаффолд новой организации. По умолчанию включает пример сети и
+  сервиса; `--empty` оставляет списки пустыми.
+- `--strict` — предупреждения считаются ошибками.
+- `--clean` — удалить выходной каталог перед рендерингом.
+- `--seed` — воспроизводимая аллокация; без флага каждая сборка использует
+  свежую случайную.
 
-## Cross-field rules
+## Cross-field правила
 
 | Код | Уровень | Что проверяет |
 |---|---|---|
-| `ids` | error | unique id for org/network/service; unique `(from,to,kind)` link |
-| `refs` | error | service.org_id and link endpoints exist |
-| `network-belongs` | error | service.network_id exists and belongs to the same org |
-| `ip-in-network` | error | generated bind_ip lies inside generated network CIDR |
-| `ip-unique` | error | generated bind_ip is unique within the same network |
-| `network-overlap` | error | generated CIDRs do not overlap |
-| `ip-scheme` | error | generated CIDRs live under `10.<org_index>.x.x` |
-| `exposure-network` | error | exposure allowed on network kind |
-| `self-loop` | error | link does not point to itself |
-| `software` | error | cve_id matches `CVE-YYYY-NNNNN` (format only) |
-| `assets` | warning | service asset directory matches a declared service |
-| `decoy-criticality` | error | decoy services are not marked `critical` |
-| `decoy-write-real` | error | decoy services do not write/backup real services |
+| `ids` | error | уникальный id для org/network/service; уникальная связь `(from,to,kind)` |
+| `refs` | error | `service.org_id` и endpoints связи существуют |
+| `network-belongs` | error | `service.network_id` существует и принадлежит той же org |
+| `ip-in-network` | error | сгенерированный `bind_ip` лежит внутри сгенерированного CIDR сети |
+| `ip-unique` | error | сгенерированный `bind_ip` уникален внутри одной сети |
+| `network-overlap` | error | сгенерированные CIDR не пересекаются |
+| `ip-scheme` | error | сгенерированные CIDR лежат под `10.<org_index>.x.x` |
+| `exposure-network` | error | `exposure` разрешён для `kind` сети |
+| `self-loop` | error | связь не указывает на саму себя |
+| `software` | error | `cve_id` соответствует `CVE-YYYY-NNNNN` (только формат) |
+| `assets` | warning | каталог ассетов сервиса соответствует объявленному сервису |
+| `decoy-criticality` | error | decoy-сервисы не помечены `critical` |
+| `decoy-write-real` | error | decoy-сервисы не пишут/бэкапят реальные сервисы |
 
 ## ADR
 
-| ADR | Решение |
-|---|---|
-| ADR-0001 | Per-org layout; loader builds in-memory `CityNetwork` |
-| ADR-0002 | Pydantic v2, `extra="forbid"` |
-| ADR-0003 | Explicit networks and IP addresses in v2.0 |
-| ADR-0004 | `Service.decoy` marks simulation-only mock services |
-| ADR-0005 | `org_id` injected by loader, not repeated in YAML |
-| ADR-0006 | CLI: `check`, `build`, `init`; exit codes 0/1 |
-| ADR-0007 | Build artifacts: `network.json`, `network.md`, `schema.json`, `topology.json`, `network.html`, `engine.zip` |
-| ADR-0008 | `--strict` makes warnings fail CI |
-| ADR-0009 | `CityNetwork` version is a code constant (`SCHEMA_VERSION`); no city-wide allocation file |
-| ADR-0010 | `Organization` keeps only structural fields; narrative metadata lives in `description` or is removed |
-| ADR-0011 | Links are directed; no `bidirectional` flag |
-| ADR-0012 | Optional `services/<svc-id>/` directories hold runtime assets; canonical service description stays in `config.yml` |
-| ADR-0013 | `engine.zip` is always produced, even without assets |
-| ADR-0014 | New artifacts: `attack-surface.json`, `inventory.md`, `changes.json` |
-| ADR-0015 | `mypy --strict` for static type checking |
-| **ADR-0016** | **Networks and IP addresses are generated by `allocator.py`; declarative model only describes topology** |
-| **ADR-0017** | **Controller → Service → UseCase → Data/IO layered architecture for CLI: Service is a thin facade that wires adapters and translates errors into `ApplicationError`** |
-| **ADR-0018** | **Service methods are decomposed into named pipeline steps (`_load`, `_allocate`, `_validate`, `_render`, `_write`) so each step is testable in isolation** |
+Архитектурные решения вынесены в отдельные файлы — см.
+[индекс ADR](adr/README.md) (`ADR-0001`..`ADR-0018`). Сквозные решения,
+затрагивающие несколько репозиториев, — в
+[`cybercity/adr/`](https://github.com/TheCipherKeeper/cybercity/blob/main/adr/).
 
-## Artifacts
+## Артефакты
 
-`build/` contains:
+`build/` содержит:
 
-- `network.json` — canonical `CityNetwork` dump (declarative fields only, no generated IPs).
-- `network.md` — human-readable projection.
-- `schema.json` — JSON Schema emitted by Pydantic.
-- `topology.json` — graph for UI/simulator consumption (includes generated `bind_ip` / `network_index`).
-- `network.html` — self-contained interactive graph viewer.
-- `attack-surface.json` — publicly exposed services and metadata.
-- `inventory.md` — discovered service asset directories.
-- `changes.json` — git-based diff against the previous build.
-- `engine.zip` — bundled runtime package for `cybercity-engine`.
+- `network.json` — канонический дамп `CityNetwork` (только декларативные поля,
+  без сгенерированных IP).
+- `network.md` — человекочитаемая проекция.
+- `schema.json` — JSON Schema, эмитируемая Pydantic.
+- `topology.json` — граф для UI/симулятора (включает сгенерированные
+  `bind_ip` / `network_index`).
+- `network.html` — самодостаточный интерактивный просмотрщик графа.
+- `attack-surface.json` — публично открытые сервисы и их метаданные.
+- `inventory.md` — обнаруженные каталоги ассетов сервисов.
+- `changes.json` — git-дифф относительно предыдущей сборки.
+- `engine.zip` — пакет runtime для `cybercity-engine` (внутри
+  `runtime/engine.json`, `topology.json`, `attack-surface.json`, `schema.json`).
 
-## License
+## Лицензии
 
-- Code / YAML: [MIT](../LICENSE)
-- Documentation: [CC BY 4.0](LICENSE-DOCS)
+- Код / YAML: [MIT](../LICENSE)
+- Документация: [CC BY 4.0](../LICENSE-DOCS)

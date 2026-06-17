@@ -1,4 +1,4 @@
-# CI/CD Pipelines
+# CI/CD-пайплайны
 
 Репозиторий содержит готовые пайплайны для GitLab CI и GitHub Actions.
 Оба проверяют полный цикл: линт → тесты → валидация → сборка артефактов.
@@ -50,7 +50,7 @@ Jobs:
 GitHub Actions загружает `build/*.json`, `build/*.md`, `build/*.html` и `build/engine.zip`
 как artifact с retention 7 дней.
 
-## Exit codes
+## Коды выхода
 
 Оба пайплайна считают pipeline failed при любом ненулевом exit code:
 - `ruff` → exit 1 на ошибки линтера
