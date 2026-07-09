@@ -6,8 +6,19 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
+.hypothesis/
 dist/
 build/
 *.egg-info/
 .uv-cache/
 .claude/
+
+# Секреты / локальные конфиги (не коммитить; .env.example — коммитится)
+.env
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,40 @@
+# Локальная разработка: брокер Redpanda + этот сервис (cybercity-data).
+# Это ЛОКАЛЬНЫЙ dev-compose (брокер + ЭТОТ сервис); системный multi-service
+# compose — в хабе cybercity (см. cybercity/COMPOSITION.md).
+services:
+  broker:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --mode=container-container
+      - --smp=1
+      - --memory=512M
+      - --default-log-level=warn
+    ports:
+      - "9092:9092"        # Kafka API
+      - "9644:9644"        # admin API (rpk/health)
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  data:
+    build: .
+    env_file: .env
+    depends_on:
+      broker:
+        condition: service_healthy
+    environment:
+      # перекрытие .env для compose-сети
+      BROKER_ADDR: broker:9092
+    volumes:
+      - ./organizations:/app/organizations:ro
+      - data-build:/app/build
+    # entrypoint по умолчанию: cybercity-data build . --out /app/build
+    # после Phase 2 build публикует city.build.completed в broker
+
+volumes:
+  data-build:

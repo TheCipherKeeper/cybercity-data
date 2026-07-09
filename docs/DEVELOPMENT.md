@@ -131,9 +131,12 @@ Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`,
 
 ## Процесс ADR
 
-Если изменение затрагивает архитектурное решение:
+ADR живут только в хабе `cybercity/adr/` (см.
+[ADR-0005](https://github.com/TheCipherKeeper/cybercity/blob/main/adr/0005-adr-centralized-in-hub.md));
+локального каталога `docs/adr/` в этом репозитории нет. Если изменение
+затрагивает архитектурное решение:
 
-1. Написать или обновить ADR в `docs/adr/` (формат — в
+1. Написать или обновить ADR в хабе `cybercity/adr/` (формат — в
    [`cybercity/CONVENTIONS.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/CONVENTIONS.md)).
 2. Сослаться на него из `docs/ARCHITECTURE.md`.
 3. Старые ADR помечать `superseded`, а не удалять.
@@ -141,7 +144,6 @@ Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`,
 ## Связанные документы
 
 - [`AGENTS.md`](../AGENTS.md) — правила для AI-агентов.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — внутренняя архитектура и модель данных.
-- [`DATA_FLOW.md`](DATA_FLOW.md) — поток данных от YAML до `engine.zip`.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — внутренняя архитектура, модель данных и поток данных.
 - [`ORGANIZATIONS.md`](ORGANIZATIONS.md) — per-org layout conventions.
 - [`PIPELINES.md`](PIPELINES.md) — CI/CD-пайплайны.
