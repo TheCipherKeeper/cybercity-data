@@ -1,30 +1,31 @@
 # CyberCity — City Data
 
-[![Part of CyberCity](https://img.shields.io/badge/CyberCity-composition-blueviolet)](https://github.com/TheCipherKeeper/cybercity)
-[![License: MIT](https://img.shields.io/badge/code-MIT-green)](LICENSE)
-[![Docs: CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey)](LICENSE-DOCS)
+[![CyberCity-composition](https://img.shields.io/badge/CyberCity-composition-blueviolet)](https://github.com/TheCipherKeeper/cybercity)
+[![code-MIT](https://img.shields.io/badge/code-MIT-green)](LICENSE)
+[![docs-CC BY 4.0](https://img.shields.io/badge/docs-CC%20BY%204.0-lightgrey)](LICENSE-DOCS)
 
-Канонический декларативный слой данных цифрового двойника CyberCity:
-организации, сети, сервисы, связи. Модель города — направленный граф
-(сервисы — узлы, связи — рёбра); прочие инструменты потребляют этот граф для
-симуляции трафика, проведения security-учений и визуализации. Тот же
-репозиторий авторит сценарии учений и является **источником правды** о модели
-города для остальных слоёв.
+`cybercity-data` — Python-сервис cybercity: декларативная модель города
+(source of truth) + авторинг сценариев/уязвимостей + сборка артефактов. CLI
+`cybercity-data` валидирует YAML-декларацию (`organizations/<org>/config.yml`),
+генерирует IP/CIDR аллокатором и собирает `engine.zip`/`topology.json`/`overlays`
+(контракт **data → engine/ui/manage**, out-of-band файлы). После завершения
+Phase 2 также публикует `city.build.completed` в брокер Redpanda
+([ADR-0010](https://github.com/TheCipherKeeper/cybercity/blob/main/adr/0010-data-broker-producer.md)).
 
-> Состав из 6 репозиториев, контракты и доверительная граница — в
-> [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md).
+> Состав из репозиториев, контракты и доверительная граница — в
+> [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md)
+> (канон). Методология — в
+> [`TheCipherKeeper/ai-project-template`](https://github.com/TheCipherKeeper/ai-project-template).
 
-В v3.0 декларативный слой описывает только топологию — организации, роли сетей,
-размещение сервисов и связи. Конкретная IP-адресация генерируется аллокатором,
-так что модель сфокусирована на структуре, а не на адресной бухгалтерии. Связи
-всегда направленные; двунаправленная связь — это две явные связи.
+В v3.0 декларативный слой описывает только топологию (организации, роли сетей,
+размещение сервисов, направленные связи); IP-адресация генерируется аллокатором.
 
-- [Архитектура и модель данных](docs/ARCHITECTURE.md)
-- [Поток данных](docs/DATA_FLOW.md)
-- [Conventions per-org layout](docs/ORGANIZATIONS.md)
-- [Правила для AI-агентов и контрибьюторов](AGENTS.md)
+- [Архитектура](docs/ARCHITECTURE.md)
+- [Спеки модулей](docs/specs/)
+- [Backlog](docs/BACKLOG.md)
+- [Правила для AI-агентов](AGENTS.md)
 - [Руководство разработчика](docs/DEVELOPMENT.md)
-- Сгенерированный вид: `build/network.md` (после `cybercity-data build .`)
+- [Conventions per-org layout](docs/ORGANIZATIONS.md) · [CI/CD-пайплайны](docs/PIPELINES.md)
 
 ## Quick start
 
@@ -37,6 +38,13 @@ uv run ruff check
 uv run mypy --strict src/cybercity_data
 ```
 
+Локальная разработка с брокером (для Phase 2 — публикации `city.build.completed`):
+
+```bash
+cp .env.example .env
+docker compose up --build   # broker (Redpanda) + data
+```
+
 ## CLI
 
 ```
@@ -47,19 +55,17 @@ cybercity-data init ID --kind KIND [--path PATH] [--empty]
 
 - `check` — только валидация.
 - `build` — валидация + запись артефактов; пропускается при ошибках.
-- `init` — скаффолд новой организации в `organizations/<ID>/`; по умолчанию с
-  примером сети и сервиса, `--empty` — минимальный шаблон.
+- `init` — скаффолд новой организации; `--empty` — минимальный шаблон.
 - `--strict` — предупреждения считаются ошибками.
 - `--clean` — удалить выходной каталог перед рендерингом.
-- `--seed` — воспроизводимая аллокация IP; без флага каждая сборка использует
-  свежую случайную.
+- `--seed` — воспроизводимая аллокация IP; без флага — свежая случайная.
 
 ## Артефакты
 
 `cybercity-data build` создаёт в `build/`: `network.json`, `network.md`,
 `schema.json`, `topology.json`, `network.html`, `attack-surface.json`,
-`inventory.md`, `changes.json`, каталог `runtime/` и собирает `engine.zip` —
-контракт **data → engine/ui**. Полный список артефактов и их назначение — в
+`inventory.md`, `changes.json`, каталог `runtime/` и `engine.zip` — контракт
+**data → engine/ui**. Полный список и назначение — в
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Лицензии
