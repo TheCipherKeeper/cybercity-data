@@ -1,5 +1,13 @@
 # CyberCity Data — Руководство разработчика
 
+## Канонические импорты
+
+Код и тесты импортируют сущности по полному пути внутри `city_model`. Корневые
+переэкспорты `cybercity_data` удалены и не являются частью нового контракта.
+Например, модель импортируется из
+`cybercity_data.city_model.adapters.inbound.domain.models`, а CLI — из
+`cybercity_data.city_model.adapters.inbound.controllers`.
+
 ## Быстрый старт
 
 ```bash
@@ -14,14 +22,14 @@ uv run cybercity-data build . --clean
 
 ## Структура проекта
 
-- `src/cybercity_data/domain/models.py` — Pydantic v2 схема (декларативный слой).
-- `src/cybercity_data/domain/allocator.py` — автоматическая аллокация сетей/IP.
-- `src/cybercity_data/domain/checker.py` — cross-field правила валидации.
-- `src/cybercity_data/data/loader.py` — сборка `CityNetwork` из
+- `src/cybercity_data/city_model/adapters/inbound/domain/models.py` — Pydantic v2 схема (декларативный слой).
+- `src/cybercity_data/city_model/adapters/inbound/domain/allocator.py` — автоматическая аллокация сетей/IP.
+- `src/cybercity_data/city_model/adapters/inbound/domain/checker.py` — cross-field правила валидации.
+- `src/cybercity_data/city_model/adapters/inbound/data/loader.py` — сборка `CityNetwork` из
   `organizations/<org>/config.yml`.
-- `src/cybercity_data/data/renderer.py` — генерация артефактов.
-- `src/cybercity_data/use_cases/build.py` — оркестрация сборки.
-- `src/cybercity_data/controllers/` — CLI-команды `check`, `build`, `init`.
+- `src/cybercity_data/city_model/adapters/inbound/data/renderer.py` — генерация артефактов.
+- `src/cybercity_data/city_model/adapters/inbound/use_cases/build.py` — оркестрация сборки.
+- `src/cybercity_data/city_model/adapters/inbound/controllers/` — CLI-команды `check`, `build`, `init`.
 - `organizations/` — канонические данные города (46 организаций).
 - `tests/` — pytest suite, включая property-based тесты на `hypothesis`.
 
@@ -41,7 +49,7 @@ uv run cybercity-data init my-org --kind government --network-index 42
 
 ### Добавление правила валидации
 
-1. Добавить метод в `NetworkChecker` в `src/cybercity_data/domain/checker.py`.
+1. Добавить метод в `NetworkChecker` в `src/cybercity_data/city_model/adapters/inbound/domain/checker.py`.
 2. Вызвать его из `NetworkChecker.check()`.
 3. Добавить тест в `tests/domain/test_checker.py`.
 4. Обновить таблицу cross-field правил в [ARCHITECTURE.md](ARCHITECTURE.md).
@@ -55,7 +63,7 @@ uv run cybercity-data init my-org --kind government --network-index 42
 ### Добавление артефакта сборки
 
 1. Добавить метод `_build_*` в `ArtifactRenderer` в
-   `src/cybercity_data/data/renderer.py`.
+   `src/cybercity_data/city_model/adapters/inbound/data/renderer.py`.
 2. Включить его в `ArtifactRenderer.render()`.
 3. Добавить в `EngineZipWriter`, если артефакт принадлежит `engine.zip`.
 4. Добавить тест в `tests/data/test_renderer.py`.

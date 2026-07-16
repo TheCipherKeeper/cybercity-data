@@ -45,7 +45,7 @@ class VulnManifest:
 
 ## Что TODO
 
-- Завести пакет `src/cybercity_data/vuln/` по швам MODULE.md.
+- Завести пакет `src/cybercity_data/city_model/adapters/inbound/vuln/` по швам MODULE.md.
 - Pydantic-схему манифеста уязвимости (`cve_id`, `realism`, `requires`,
   overlay-спека).
 - Валидатор: `requires`-предусловие, ссылки на сервис модели, формат `cve_id`.

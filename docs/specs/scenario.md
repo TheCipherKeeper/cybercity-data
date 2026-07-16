@@ -44,7 +44,7 @@ class ScenarioManifest:
 
 ## Что TODO
 
-- Завести пакет `src/cybercity_data/scenario/` по швам MODULE.md
+- Завести пакет `src/cybercity_data/city_model/adapters/inbound/scenario/` по швам MODULE.md
   (usecases/ports/domain/adapters).
 - Pydantic-схему манифеста сценария (цели, injects, флаги, scoring-rubric, timebox).
 - Валидатор (cross-field: ссылки на существующие сервисы/сети модели города,

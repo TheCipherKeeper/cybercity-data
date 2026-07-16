@@ -55,8 +55,8 @@ _CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,}$")
 class NetworkChecker:
     """Run every cross-field rule against an assembled `CityNetwork`.
 
-    The checker needs an :class:`~cybercity_data.domain.allocator.Allocation` because
-    concrete addressing is no longer part of the declarative model.
+    The checker needs an ``Allocation`` from the sibling allocator module
+    because concrete addressing is no longer part of the declarative model.
     """
 
     def __init__(self, allocation: Allocation | None = None) -> None:

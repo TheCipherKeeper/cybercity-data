@@ -7,7 +7,7 @@
 
 Генерация сетевой адресации (IP/CIDR) по декларативной модели. Чистая доменная
 функция без I/O; вызывается шагом `_allocate` общего pipeline. Реализован в
-`src/cybercity_data/domain/allocator.py` (часть `domain`, выделен в отдельную
+`src/cybercity_data/city_model/adapters/inbound/domain/allocator.py` (часть `domain`, выделен в отдельную
 спеку из-за самостоятельной роли и воспроизводимости).
 
 ## Интерфейсы
