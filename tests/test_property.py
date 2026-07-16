@@ -3,10 +3,16 @@
 import hypothesis.strategies as st
 from hypothesis import given, settings
 
-from cybercity_data import CityNetwork, check
-from cybercity_data.data.renderer import ArtifactRenderer
-from cybercity_data.domain.allocator import Allocator
-from cybercity_data.domain.models import Link, Network, Organization, Service
+from cybercity_data.city_model.adapters.inbound.data.renderer import ArtifactRenderer
+from cybercity_data.city_model.adapters.inbound.domain.allocator import Allocator
+from cybercity_data.city_model.adapters.inbound.domain.checker import check
+from cybercity_data.city_model.adapters.inbound.domain.models import (
+    CityNetwork,
+    Link,
+    Network,
+    Organization,
+    Service,
+)
 
 _SVC_KINDS = [
     "web",

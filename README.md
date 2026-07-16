@@ -15,14 +15,14 @@ Phase 2 также публикует `city.build.completed` в брокер Red
 > Состав из репозиториев, контракты и доверительная граница — в
 > [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md)
 > (канон). Методология — в
-> [`TheCipherKeeper/ai-project-template`](https://github.com/TheCipherKeeper/ai-project-template).
+> закреплённой версией методологии из `.methodology.yml`.
 
 В v3.0 декларативный слой описывает только топологию (организации, роли сетей,
 размещение сервисов, направленные связи); IP-адресация генерируется аллокатором.
 
 - [Архитектура](docs/ARCHITECTURE.md)
 - [Спеки модулей](docs/specs/)
-- [Backlog](docs/BACKLOG.md)
+- [Хаб и бэклог программы](https://github.com/TheCipherKeeper/cybercity)
 - [Правила для AI-агентов](AGENTS.md)
 - [Руководство разработчика](docs/DEVELOPMENT.md)
 - [Conventions per-org layout](docs/ORGANIZATIONS.md) · [CI/CD-пайплайны](docs/PIPELINES.md)

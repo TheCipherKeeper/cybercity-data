@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from cybercity_data import CityNetwork
-from cybercity_data.data.loader import load_network
-from cybercity_data.domain.allocator import Allocation, Allocator
+from cybercity_data.city_model.adapters.inbound.data.loader import load_network
+from cybercity_data.city_model.adapters.inbound.domain.allocator import Allocation, Allocator
+from cybercity_data.city_model.adapters.inbound.domain.models import CityNetwork
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

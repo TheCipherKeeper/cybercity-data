@@ -1,12 +1,12 @@
 # EXAMPLE — шаблон спеки модуля
 
 <!--
-  Канон структуры спеки — <methodology-repo>/docs/refs/SPEC.md.
-  Процедура заведения модуля — <methodology-repo>/docs/guide/20-define-module.md.
+  Канон структуры спеки — <methodology-repo>/docs/ARCHITECTURE.md.
+  Процедура заведения модуля — <methodology-repo>/docs/ARCHITECTURE.md.
   Внутренняя архитектура модуля (usecases/ports/domain/adapters) —
-  <methodology-repo>/docs/refs/MODULE.md.
+  <methodology-repo>/docs/ARCHITECTURE.md.
   `<methodology-repo>` =
-  [TheCipherKeeper/ai-project-template](https://github.com/TheCipherKeeper/ai-project-template).
+  [TheCipherKeeper/addm](https://github.com/TheCipherKeeper/addm).
 
   СКОПИРУЙ этот файл под docs/specs/<module>.md и заполни 7 секций ниже
   (Описание / Интерфейсы / Типы / Что есть / Что TODO / Ограничения / Зависимости).

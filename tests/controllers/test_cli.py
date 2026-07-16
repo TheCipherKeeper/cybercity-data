@@ -7,7 +7,7 @@ import yaml
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from cybercity_data.controllers import app
+from cybercity_data.city_model.adapters.inbound.controllers import app
 
 runner = CliRunner()
 
@@ -205,7 +205,9 @@ def test_check_exits_1_on_bad_yaml(tmp_path: Path, monkeypatch) -> None:
     def boom(*_args, **_kwargs):
         raise yaml.YAMLError("simulated yaml failure")
 
-    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
+    monkeypatch.setattr(
+        "cybercity_data.city_model.adapters.inbound.services.check.CheckService.run", boom
+    )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
 
@@ -268,7 +270,9 @@ def test_check_exits_1_on_internal_error(tmp_path: Path, monkeypatch) -> None:
     def boom(*_args, **_kwargs):
         raise RuntimeError("simulated internal failure")
 
-    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
+    monkeypatch.setattr(
+        "cybercity_data.city_model.adapters.inbound.services.check.CheckService.run", boom
+    )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
     assert "simulated internal failure" in result.output
@@ -278,7 +282,9 @@ def test_check_exits_1_on_validation_exception(tmp_path: Path, monkeypatch) -> N
     def boom(*_args, **_kwargs):
         raise ValidationError.from_exception_data("CityNetwork", [])
 
-    monkeypatch.setattr("cybercity_data.services.check.CheckService.run", boom)
+    monkeypatch.setattr(
+        "cybercity_data.city_model.adapters.inbound.services.check.CheckService.run", boom
+    )
     result = runner.invoke(app, ["check", str(tmp_path)])
     assert result.exit_code == 1
     assert "ValidationError" in result.output
@@ -290,7 +296,9 @@ def test_build_exits_1_on_internal_render_error(
     def boom(*_args, **_kwargs):
         raise RuntimeError("render boom")
 
-    monkeypatch.setattr("cybercity_data.services.build.BuildService.run", boom)
+    monkeypatch.setattr(
+        "cybercity_data.city_model.adapters.inbound.services.build.BuildService.run", boom
+    )
     out = tmp_path / "out"
     result = runner.invoke(app, ["build", str(tiny_path), "--out", str(out)])
     assert result.exit_code == 1

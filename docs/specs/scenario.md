@@ -1,7 +1,7 @@
 # Спека модуля `scenario`
 
-> Канон структуры — `<methodology-repo>`/docs/refs/SPEC.md (`<methodology-repo>` =
-> [TheCipherKeeper/ai-project-template](https://github.com/TheCipherKeeper/ai-project-template)).
+> Канон структуры — `<methodology-repo>`/docs/ARCHITECTURE.md (`<methodology-repo>` =
+> [TheCipherKeeper/addm](https://github.com/TheCipherKeeper/addm)).
 
 > **Статус: WIP** (в работе). Спека-заглушка с заполненным «Что TODO»; код
 > модуля заводится по задаче BACKLOG 1. Не выдавать stub за реализацию.

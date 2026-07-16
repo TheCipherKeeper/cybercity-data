@@ -3,7 +3,7 @@
 import subprocess
 from pathlib import Path
 
-from cybercity_data.data.git import GitChangesGateway
+from cybercity_data.city_model.adapters.inbound.data.git import GitChangesGateway
 
 
 def test_previous_network_json_returns_stdout(tmp_path: Path, monkeypatch) -> None:

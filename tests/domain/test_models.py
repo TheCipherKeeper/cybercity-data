@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from cybercity_data import CityNetwork
+from cybercity_data.city_model.adapters.inbound.domain.models import CityNetwork
 
 
 def test_tiny_fixture_parses(tiny_network: CityNetwork) -> None:

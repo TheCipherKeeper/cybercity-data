@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "lint": [
+    ["uv", "run", "ruff", "format", "--check", "."],
+    ["uv", "run", "ruff", "check", "."],
+    ["uv", "run", "mypy", "--strict", "src/cybercity_data"]
+  ],
+  "tests": [
+    ["uv", "run", "pytest", "-q"]
+  ],
+  "build": {
+    "commands": [["uv", "build"]],
+    "outputs": ["dist"]
+  },
+  "deploy": [["python", "tools/deploy.py", "{artifact_dir}", "{commit}"]]
+}

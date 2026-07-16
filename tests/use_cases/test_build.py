@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from cybercity_data.data.filesystem import FileSystemGateway
-from cybercity_data.data.git import GitChangesGateway
-from cybercity_data.data.loader import NetworkLoader
-from cybercity_data.data.renderer import ArtifactRenderer
-from cybercity_data.data.zip import EngineZipWriter
-from cybercity_data.use_cases.build import BuildUseCase
-from cybercity_data.use_cases.validate_step import ValidateCityStep
+from cybercity_data.city_model.adapters.inbound.data.filesystem import FileSystemGateway
+from cybercity_data.city_model.adapters.inbound.data.git import GitChangesGateway
+from cybercity_data.city_model.adapters.inbound.data.loader import NetworkLoader
+from cybercity_data.city_model.adapters.inbound.data.renderer import ArtifactRenderer
+from cybercity_data.city_model.adapters.inbound.data.zip import EngineZipWriter
+from cybercity_data.city_model.adapters.inbound.use_cases.build import BuildUseCase
+from cybercity_data.city_model.adapters.inbound.use_cases.validate_step import ValidateCityStep
 
 
 def _build_use_case(path: Path) -> BuildUseCase:

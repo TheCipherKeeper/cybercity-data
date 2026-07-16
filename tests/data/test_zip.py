@@ -3,10 +3,10 @@
 import json
 import zipfile
 
-from cybercity_data.data.filesystem import FileSystemGateway
-from cybercity_data.data.loader import ServiceAssets
-from cybercity_data.data.renderer import ArtifactRenderer
-from cybercity_data.data.zip import EngineZipWriter
+from cybercity_data.city_model.adapters.inbound.data.filesystem import FileSystemGateway
+from cybercity_data.city_model.adapters.inbound.data.loader import ServiceAssets
+from cybercity_data.city_model.adapters.inbound.data.renderer import ArtifactRenderer
+from cybercity_data.city_model.adapters.inbound.data.zip import EngineZipWriter
 
 
 def test_render_includes_engine_zip_with_assets(tiny_network, tiny_allocation, tmp_path) -> None:

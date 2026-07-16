@@ -15,21 +15,21 @@
 
 ## Структура каталогов
 
-```
-organizations/
-├── hall/
-│   ├── config.yml
-│   └── services/            # опциональные ассеты сервисов
-│       └── hall-web/
-│           ├── nginx.conf
-│           └── certs/
-├── bank/
-│   ├── config.yml
-│   └── services/
-│       └── bank-web/
-│           ├── nginx.conf
-│           └── certs/
-└── _archive/               # underscore-папки игнорируются loader'ом
+```mermaid
+flowchart TD
+  ROOT[organizations] --> HALL[hall]
+  ROOT --> BANK[bank]
+  ROOT --> ARCHIVE[_archive: игнорируется загрузчиком]
+  HALL --> HC[config.yml]
+  HALL --> HS[services]
+  HS --> HW[hall-web]
+  HW --> HN[nginx.conf]
+  HW --> HCRT[certs]
+  BANK --> BC[config.yml]
+  BANK --> BS[services]
+  BS --> BW[bank-web]
+  BW --> BN[nginx.conf]
+  BW --> BCRT[certs]
 ```
 
 ## Шаблон `config.yml`
