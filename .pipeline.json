@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "lint": [
-    ["uv", "run", "ruff", "format", "--check", "."],
-    ["uv", "run", "ruff", "check", "."],
+    ["uv", "run", "ruff", "format", "--check", "--exclude", ".methodology-policy", "."],
+    ["uv", "run", "ruff", "check", "--exclude", ".methodology-policy", "."],
     ["uv", "run", "mypy", "--strict", "src/cybercity_data"]
   ],
   "tests": [
-    ["uv", "run", "pytest", "-q", "--cov=src/cybercity_data", "--cov-report=term", "--cov-fail-under=95"],
+    ["uv", "run", "pytest", "-q", "tests", "--cov=src/cybercity_data", "--cov-report=term", "--cov-fail-under=95"],
     ["uv", "run", "cybercity-data", "check", "."]
   ],
   "build": {
