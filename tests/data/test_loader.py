@@ -5,9 +5,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from cybercity_data import CityNetwork
-from cybercity_data.data.loader import NetworkLoader, find_org_dirs, load_network
-from cybercity_data.domain.allocator import Allocator
+from cybercity_data.city_model.adapters.inbound.data.loader import (
+    NetworkLoader,
+    find_org_dirs,
+    load_network,
+)
+from cybercity_data.city_model.adapters.inbound.domain.allocator import Allocator
+from cybercity_data.city_model.adapters.inbound.domain.models import CityNetwork
 
 
 def test_find_org_dirs_skips_underscore_dirs(tiny_path: Path, tmp_path: Path) -> None:

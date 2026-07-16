@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from cybercity_data.data.filesystem import FileSystemGateway
-from cybercity_data.data.git import GitChangesGateway
-from cybercity_data.data.loader import NetworkLoader
-from cybercity_data.data.renderer import ArtifactRenderer
-from cybercity_data.data.zip import EngineZipWriter
-from cybercity_data.use_cases.build import BuildUseCase
-from cybercity_data.use_cases.validate_step import ValidateCityStep
+from cybercity_data.city_model.adapters.inbound.data.filesystem import FileSystemGateway
+from cybercity_data.city_model.adapters.inbound.data.git import GitChangesGateway
+from cybercity_data.city_model.adapters.inbound.data.loader import NetworkLoader
+from cybercity_data.city_model.adapters.inbound.data.renderer import ArtifactRenderer
+from cybercity_data.city_model.adapters.inbound.data.zip import EngineZipWriter
+from cybercity_data.city_model.adapters.inbound.use_cases.build import BuildUseCase
+from cybercity_data.city_model.adapters.inbound.use_cases.validate_step import ValidateCityStep
 
 
 def _build_use_case(path: Path) -> BuildUseCase:
@@ -67,3 +67,10 @@ def test_build_skipped_on_errors(tmp_path: Path) -> None:
     assert not result.ok
     assert result.skipped_reason is not None
     assert not (tmp_path / "build" / "network.json").exists()
+
+    strict_check = result.check.model_copy(
+        update={"strict": True, "warnings": [result.check.errors[0]]}
+    )
+    strict_result = use_case._skip(strict_check)
+    assert strict_result.skipped_reason is not None
+    assert "warning(s) (strict mode)" in strict_result.skipped_reason

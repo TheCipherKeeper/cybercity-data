@@ -1,13 +1,13 @@
 # Спека модуля `allocator`
 
-> Канон структуры — `<methodology-repo>`/docs/refs/SPEC.md (`<methodology-repo>` =
-> [TheCipherKeeper/ai-project-template](https://github.com/TheCipherKeeper/ai-project-template)).
+> Канон структуры — `<methodology-repo>`/docs/ARCHITECTURE.md (`<methodology-repo>` =
+> [TheCipherKeeper/addm](https://github.com/TheCipherKeeper/addm)).
 
 ## Описание
 
 Генерация сетевой адресации (IP/CIDR) по декларативной модели. Чистая доменная
 функция без I/O; вызывается шагом `_allocate` общего pipeline. Реализован в
-`src/cybercity_data/domain/allocator.py` (часть `domain`, выделен в отдельную
+`src/cybercity_data/city_model/adapters/inbound/domain/allocator.py` (часть `domain`, выделен в отдельную
 спеку из-за самостоятельной роли и воспроизводимости).
 
 ## Интерфейсы

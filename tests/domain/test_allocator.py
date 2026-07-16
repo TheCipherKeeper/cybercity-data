@@ -2,8 +2,13 @@
 
 import pytest
 
-from cybercity_data.domain.allocator import AllocationError, Allocator
-from cybercity_data.domain.models import CityNetwork, Network, Organization, Service
+from cybercity_data.city_model.adapters.inbound.domain.allocator import AllocationError, Allocator
+from cybercity_data.city_model.adapters.inbound.domain.models import (
+    CityNetwork,
+    Network,
+    Organization,
+    Service,
+)
 
 
 def _minimal_network() -> CityNetwork:

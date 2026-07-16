@@ -4,7 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from cybercity_data.data.filesystem import FileSystemGateway, InitTemplate
+from cybercity_data.city_model.adapters.inbound.data.filesystem import (
+    FileSystemGateway,
+    InitTemplate,
+)
 
 
 def test_clean_directory_removes_children(tmp_path: Path) -> None:

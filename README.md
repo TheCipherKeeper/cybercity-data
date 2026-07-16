@@ -14,15 +14,14 @@ Phase 2 также публикует `city.build.completed` в брокер Red
 
 > Состав из репозиториев, контракты и доверительная граница — в
 > [`cybercity/COMPOSITION.md`](https://github.com/TheCipherKeeper/cybercity/blob/main/COMPOSITION.md)
-> (канон). Методология — в
-> [`TheCipherKeeper/ai-project-template`](https://github.com/TheCipherKeeper/ai-project-template).
+> (канон). Версия методологии закреплена в `.methodology.yml`.
 
 В v3.0 декларативный слой описывает только топологию (организации, роли сетей,
 размещение сервисов, направленные связи); IP-адресация генерируется аллокатором.
 
 - [Архитектура](docs/ARCHITECTURE.md)
 - [Спеки модулей](docs/specs/)
-- [Backlog](docs/BACKLOG.md)
+- [Хаб и бэклог программы](https://github.com/TheCipherKeeper/cybercity)
 - [Правила для AI-агентов](AGENTS.md)
 - [Руководство разработчика](docs/DEVELOPMENT.md)
 - [Conventions per-org layout](docs/ORGANIZATIONS.md) · [CI/CD-пайплайны](docs/PIPELINES.md)
@@ -59,6 +58,20 @@ cybercity-data init ID --kind KIND [--path PATH] [--empty]
 - `--strict` — предупреждения считаются ошибками.
 - `--clean` — удалить выходной каталог перед рендерингом.
 - `--seed` — воспроизводимая аллокация IP; без флага — свежая случайная.
+
+## Импорты Python
+
+Корневой пакет `cybercity_data` больше не переэкспортирует внутренние типы и
+функции. Репозиторные потребители используют явные канонические пути модуля:
+
+```python
+from cybercity_data.city_model.adapters.inbound.domain.checker import check
+from cybercity_data.city_model.adapters.inbound.domain.models import CityNetwork
+```
+
+Прежние импорты вида `from cybercity_data import CityNetwork, check` намеренно
+несовместимы с канонической модульной границей. Команды CLI и файловые контракты
+при этом не изменились.
 
 ## Артефакты
 

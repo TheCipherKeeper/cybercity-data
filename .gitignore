@@ -12,6 +12,9 @@ build/
 *.egg-info/
 .uv-cache/
 .claude/
+verification.json
+.pipeline/
+.deploy/
 
 # Секреты / локальные конфиги (не коммитить; .env.example — коммитится)
 .env

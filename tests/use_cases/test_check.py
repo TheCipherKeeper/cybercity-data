@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from cybercity_data.data.loader import NetworkLoader
-from cybercity_data.use_cases.check import CheckUseCase
-from cybercity_data.use_cases.validate_step import ValidateCityStep
+from cybercity_data.city_model.adapters.inbound.data.loader import NetworkLoader
+from cybercity_data.city_model.adapters.inbound.use_cases.check import CheckUseCase
+from cybercity_data.city_model.adapters.inbound.use_cases.validate_step import ValidateCityStep
 
 
 def _check_use_case(path: Path) -> CheckUseCase:

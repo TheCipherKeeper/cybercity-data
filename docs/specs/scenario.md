@@ -1,7 +1,7 @@
 # Спека модуля `scenario`
 
-> Канон структуры — `<methodology-repo>`/docs/refs/SPEC.md (`<methodology-repo>` =
-> [TheCipherKeeper/ai-project-template](https://github.com/TheCipherKeeper/ai-project-template)).
+> Канон структуры — `<methodology-repo>`/docs/ARCHITECTURE.md (`<methodology-repo>` =
+> [TheCipherKeeper/addm](https://github.com/TheCipherKeeper/addm)).
 
 > **Статус: WIP** (в работе). Спека-заглушка с заполненным «Что TODO»; код
 > модуля заводится по задаче BACKLOG 1. Не выдавать stub за реализацию.
@@ -44,7 +44,7 @@ class ScenarioManifest:
 
 ## Что TODO
 
-- Завести пакет `src/cybercity_data/scenario/` по швам MODULE.md
+- Завести пакет `src/cybercity_data/city_model/adapters/inbound/scenario/` по швам MODULE.md
   (usecases/ports/domain/adapters).
 - Pydantic-схему манифеста сценария (цели, injects, флаги, scoring-rubric, timebox).
 - Валидатор (cross-field: ссылки на существующие сервисы/сети модели города,

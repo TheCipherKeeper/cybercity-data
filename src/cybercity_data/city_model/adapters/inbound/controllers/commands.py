@@ -65,9 +65,7 @@ def _wrap_command(fn: Callable[..., CliResponse]) -> Callable[..., None]:
         except ApplicationError as exc:
             response = ErrorResponse(path=path, ok=False, exit_code=1, error=exc.message)
         except Exception:
-            response = ErrorResponse(
-                path=path, ok=False, exit_code=1, error=traceback.format_exc()
-            )
+            response = ErrorResponse(path=path, ok=False, exit_code=1, error=traceback.format_exc())
 
         present(response, json_out)
         raise typer.Exit(code=response.exit_code)
@@ -77,7 +75,7 @@ def _wrap_command(fn: Callable[..., CliResponse]) -> Callable[..., None]:
 
 def register_commands(
     app: typer.Typer,
-    package: str = "cybercity_data.controllers.handlers",
+    package: str = "cybercity_data.city_model.adapters.inbound.controllers.handlers",
 ) -> None:
     """Import all handler modules and register functions marked by ``@cli_command``.
 

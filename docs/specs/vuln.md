@@ -1,7 +1,7 @@
 # Спека модуля `vuln`
 
-> Канон структуры — `<methodology-repo>`/docs/refs/SPEC.md (`<methodology-repo>` =
-> [TheCipherKeeper/ai-project-template](https://github.com/TheCipherKeeper/ai-project-template)).
+> Канон структуры — `<methodology-repo>`/docs/ARCHITECTURE.md (`<methodology-repo>` =
+> [TheCipherKeeper/addm](https://github.com/TheCipherKeeper/addm)).
 
 > **Статус: TODO** (не начат). Спека-заглушка с заполненным «Что TODO»; код
 > модуля заводится по задаче BACKLOG 2. Не выдавать stub за реализацию.
@@ -45,7 +45,7 @@ class VulnManifest:
 
 ## Что TODO
 
-- Завести пакет `src/cybercity_data/vuln/` по швам MODULE.md.
+- Завести пакет `src/cybercity_data/city_model/adapters/inbound/vuln/` по швам MODULE.md.
 - Pydantic-схему манифеста уязвимости (`cve_id`, `realism`, `requires`,
   overlay-спека).
 - Валидатор: `requires`-предусловие, ссылки на сервис модели, формат `cve_id`.

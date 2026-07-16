@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from cybercity_data.data.filesystem import FileSystemGateway
-from cybercity_data.use_cases.init import InitUseCase
+from cybercity_data.city_model.adapters.inbound.data.filesystem import FileSystemGateway
+from cybercity_data.city_model.adapters.inbound.use_cases.init import InitUseCase
 
 
 def test_init_creates_example_org(tmp_path: Path) -> None:

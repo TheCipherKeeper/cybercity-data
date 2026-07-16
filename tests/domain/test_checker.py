@@ -1,8 +1,13 @@
 """Cross-field rule tests."""
 
-from cybercity_data import CityNetwork, check
-from cybercity_data.domain.allocator import Allocator
-from cybercity_data.domain.models import Network, Organization, Service
+from cybercity_data.city_model.adapters.inbound.domain.allocator import Allocator
+from cybercity_data.city_model.adapters.inbound.domain.checker import check
+from cybercity_data.city_model.adapters.inbound.domain.models import (
+    CityNetwork,
+    Network,
+    Organization,
+    Service,
+)
 
 
 def _mutate(network: CityNetwork, *, services=None, links=None, organizations=None):
@@ -257,6 +262,5 @@ def test_honeypot_write_real() -> None:
     )
     report = _check(network)
     assert any(
-        i.code == "honeypot-write-real" and "honeypot service" in i.message
-        for i in report.errors
+        i.code == "honeypot-write-real" and "honeypot service" in i.message for i in report.errors
     )

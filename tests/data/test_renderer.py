@@ -3,11 +3,11 @@
 import json
 from pathlib import Path
 
-from cybercity_data.data.filesystem import FileSystemGateway
-from cybercity_data.data.loader import ServiceAssets
-from cybercity_data.data.renderer import ArtifactRenderer
-from cybercity_data.domain.allocator import Allocator
-from cybercity_data.domain.models import Service, Software
+from cybercity_data.city_model.adapters.inbound.data.filesystem import FileSystemGateway
+from cybercity_data.city_model.adapters.inbound.data.loader import ServiceAssets
+from cybercity_data.city_model.adapters.inbound.data.renderer import ArtifactRenderer
+from cybercity_data.city_model.adapters.inbound.domain.allocator import Allocator
+from cybercity_data.city_model.adapters.inbound.domain.models import Service, Software
 
 
 def _render(
@@ -175,7 +175,7 @@ def test_render_preserves_unchanged_files(tiny_network, tiny_allocation, tmp_pat
 
 
 def test_build_artifacts_free_function(tiny_network, tiny_allocation, tmp_path: Path) -> None:
-    from cybercity_data.data.renderer import build_artifacts
+    from cybercity_data.city_model.adapters.inbound.data.renderer import build_artifacts
 
     paths = build_artifacts(tiny_network, tmp_path, allocation=tiny_allocation)
     assert len(paths) == 10

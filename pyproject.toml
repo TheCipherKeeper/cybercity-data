@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cybercity-data = "cybercity_data.controllers:app"
+cybercity-data = "cybercity_data.city_model.adapters.inbound.controllers:app"
 
 [build-system]
 requires = ["hatchling"]

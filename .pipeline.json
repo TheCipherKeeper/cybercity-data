@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "lint": [
+    ["uv", "run", "ruff", "format", "--check", "--exclude", ".methodology-policy", "."],
+    ["uv", "run", "ruff", "check", "--exclude", ".methodology-policy", "."],
+    ["uv", "run", "mypy", "--strict", "src/cybercity_data"]
+  ],
+  "tests": [
+    ["uv", "run", "pytest", "-q", "tests", "--cov=src/cybercity_data", "--cov-report=term", "--cov-fail-under=95"],
+    ["uv", "run", "cybercity-data", "check", "."]
+  ],
+  "build": {
+    "commands": [["uv", "build"]],
+    "outputs": ["dist"]
+  },
+  "deploy": [["python", "tools/deploy.py", "{artifact_dir}", "{commit}"]]
+}
