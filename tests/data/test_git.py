@@ -56,3 +56,13 @@ def test_head_timestamp_returns_iso(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(subprocess, "run", fake_run)
     gateway = GitChangesGateway(tmp_path)
     assert gateway.head_timestamp() == "2024-01-01T00:00:00+00:00"
+
+
+def test_head_metadata_returns_none_without_git(tmp_path: Path, monkeypatch) -> None:
+    def fake_run(*_args, **_kwargs):
+        raise FileNotFoundError
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    gateway = GitChangesGateway(tmp_path)
+    assert gateway.head_ref() is None
+    assert gateway.head_timestamp() is None
