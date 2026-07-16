@@ -67,3 +67,10 @@ def test_build_skipped_on_errors(tmp_path: Path) -> None:
     assert not result.ok
     assert result.skipped_reason is not None
     assert not (tmp_path / "build" / "network.json").exists()
+
+    strict_check = result.check.model_copy(
+        update={"strict": True, "warnings": [result.check.errors[0]]}
+    )
+    strict_result = use_case._skip(strict_check)
+    assert strict_result.skipped_reason is not None
+    assert "warning(s) (strict mode)" in strict_result.skipped_reason
